@@ -1,6 +1,7 @@
 package me.cpele.compotube
 
 import android.os.Bundle
+import android.os.Parcelable
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ui.theme.CompotubeTheme
 
 class MainActivity : ComponentActivity() {
@@ -60,7 +62,8 @@ sealed class Effect {
     data class Toast(val text: String) : Effect()
 }
 
-data class Model(val query: String = "")
+@Parcelize
+data class Model(val query: String = ""): Parcelable
 
 @Composable
 fun View(model: Model, dispatch: (Event) -> Unit) {
