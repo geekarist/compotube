@@ -1,18 +1,24 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package me.cpele.compotube
 
+// This fixes an error when using `by rememberSaveable { mutableStateOf(...) }`
+// See https://stackoverflow.com/a/63877349
 import android.os.Bundle
 import android.os.Parcelable
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ui.theme.CompotubeTheme
 
@@ -20,24 +26,36 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            val scope: CoroutineScope = rememberCoroutineScope()
             CompotubeTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var model: Model = rememberSaveable { Model() }
-                    var dispatch: (Event) -> Unit = { }
-                    dispatch = { event ->
-                        val change: Change = update(model, event)
-                        model = change.model
-                        change.effects.forEach { effect ->
-                            when (effect) {
-                                is Effect.Toast -> toast(effect.text)
-                            }
-                        }
-                    }
-                    View(model = model, dispatch = dispatch)
+                    var model by rememberSaveable { mutableStateOf(Model()) }
+                    View(model = model, dispatch = { event ->
+                        Log.d(javaClass.simpleName, "Dispatch: $event")
+                        dispatch(scope, model, event) { newModel: Model -> model = newModel }
+                    })
+                }
+            }
+        }
+    }
+
+    private fun dispatch(
+        scope: CoroutineScope,
+        model: Model,
+        event: Event,
+        onChangeModel: (Model) -> Unit
+    ) {
+        scope.launch {
+            val change: Change = update(model, event)
+            Log.d(javaClass.simpleName, "Change: $change")
+            onChangeModel(change.model)
+            change.effects.forEach { effect ->
+                when (effect) {
+                    is Effect.Toast -> toast(effect.text)
                 }
             }
         }
@@ -46,11 +64,6 @@ class MainActivity : ComponentActivity() {
     private fun toast(text: String) {
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
     }
-
-    private fun update(model: Model, event: Event): Change =
-        when (event) {
-            is Event.QueryChanged -> Change(model.copy(query = event.value))
-        }
 }
 
 class Change(val model: Model, vararg val effects: Effect) {
@@ -63,14 +76,23 @@ sealed class Effect {
 }
 
 @Parcelize
-data class Model(val query: String = ""): Parcelable
+data class Model(val query: String = "") : Parcelable
 
 @Composable
 fun View(model: Model, dispatch: (Event) -> Unit) {
-    BasicTextField(value = model.query, onValueChange = { dispatch(Event.QueryChanged(it)) })
-    Text(text = "You're looking for: " + model.query)
+    Column {
+        BasicTextField(value = model.query, onValueChange = {
+            dispatch(Event.QueryChanged(it))
+        })
+        Text(text = "You're looking for: " + model.query)
+    }
 }
 
 sealed class Event {
     data class QueryChanged(val value: String) : Event()
 }
+
+private fun update(model: Model, event: Event): Change =
+    when (event) {
+        is Event.QueryChanged -> Change(model.copy(query = event.value))
+    }
