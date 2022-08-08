@@ -6,19 +6,19 @@ package me.cpele.compotube
 // See https://stackoverflow.com/a/63877349
 import android.os.Bundle
 import android.os.Parcelable
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ui.theme.CompotubeTheme
 
@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val scope: CoroutineScope = rememberCoroutineScope()
+            rememberCoroutineScope()
             CompotubeTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
@@ -35,27 +35,14 @@ class MainActivity : ComponentActivity() {
                 ) {
                     var model by rememberSaveable { mutableStateOf(Model()) }
                     View(model = model, dispatch = { event ->
-                        Log.d(javaClass.simpleName, "Dispatch: $event")
-                        dispatch(scope, model, event) { newModel: Model -> model = newModel }
+                        val change: Change = update(model, event)
+                        model = change.model
+                        change.effects.forEach { effect ->
+                            when (effect) {
+                                is Effect.Toast -> toast(effect.text)
+                            }
+                        }
                     })
-                }
-            }
-        }
-    }
-
-    private fun dispatch(
-        scope: CoroutineScope,
-        model: Model,
-        event: Event,
-        onChangeModel: (Model) -> Unit
-    ) {
-        scope.launch {
-            val change: Change = update(model, event)
-            Log.d(javaClass.simpleName, "Change: $change")
-            onChangeModel(change.model)
-            change.effects.forEach { effect ->
-                when (effect) {
-                    is Effect.Toast -> toast(effect.text)
                 }
             }
         }
