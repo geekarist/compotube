@@ -5,6 +5,7 @@ package me.cpele.compotube
 // This fixes an error when using `by rememberSaveable { mutableStateOf(...) }`
 // See https://stackoverflow.com/a/63877349
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,12 +39,17 @@ class MainActivity : ComponentActivity() {
                         change.effects.forEach { effect ->
                             when (effect) {
                                 is Effect.Toast -> toast(effect.text)
+                                is Effect.Log -> log(effect.text)
                             }
                         }
                     })
                 }
             }
         }
+    }
+
+    private fun log(text: String) {
+        Log.d(javaClass.simpleName, text)
     }
 
     private fun toast(text: String) {

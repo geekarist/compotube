@@ -3,13 +3,19 @@
 package me.cpele.compotube.main
 
 import android.os.Parcelable
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.mvu.Change
+import me.cpele.compotube.mvu.Effect
 
 object Main {
 
@@ -19,20 +25,40 @@ object Main {
     @Composable
     fun View(model: Model, dispatch: (Event) -> Unit) {
         Column {
-            TextField(value = model.query, onValueChange = {
-                dispatch(Event.QueryChanged(it))
-            })
-            Text(text = "You're looking for: " + model.query)
+            Box(Modifier.wrapContentHeight()) {
+                TextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = model.query,
+                    placeholder = { Text("Search Compotube") },
+                    onValueChange = { value ->
+                        dispatch(Event.QueryChanged(value))
+                    }
+                )
+                Button(
+                    modifier = Modifier
+                        .wrapContentSize()
+                        .align(Alignment.CenterEnd)
+                        .focusable(true)
+                        .padding(end = 8.dp),
+                    onClick = { dispatch(Event.QuerySent) }) {
+                    Text("Submit")
+                }
+            }
         }
     }
 
     sealed class Event {
+        object QuerySent : Event()
         data class QueryChanged(val value: String) : Event()
     }
 
     fun update(model: Model, event: Event): Change<Model> =
         when (event) {
-            is Event.QueryChanged -> Change(model.copy(query = event.value))
+            is Event.QueryChanged -> Change(
+                model.copy(query = event.value),
+                Effect.Log("You're looking for ${event.value}")
+            )
+            is Event.QuerySent -> Change(model, Effect.Toast("Query sent: ${model.query}"))
         }
 }
 
