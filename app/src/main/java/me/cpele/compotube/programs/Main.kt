@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package me.cpele.compotube.main
+package me.cpele.compotube.programs
 
 import android.os.Parcelable
 import androidx.compose.foundation.focusable
@@ -12,6 +12,9 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.mvu.Change
@@ -24,10 +27,23 @@ object Main {
 
     @Composable
     fun View(model: Model, dispatch: (Event) -> Unit) {
-        Column {
-            Box(Modifier.wrapContentHeight()) {
+        Column(modifier = Modifier.focusable(false)) {
+            Box(
+                Modifier
+                    .wrapContentHeight()
+                    .focusable(false)
+            ) {
+                val buttonFocusReq = FocusRequester()
+                val textFieldFocusReq = FocusRequester()
                 TextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(textFieldFocusReq)
+                        .focusable()
+                        .focusProperties {
+                            next = buttonFocusReq
+                        },
+                    singleLine = true,
                     value = model.query,
                     placeholder = { Text("Search Compotube") },
                     onValueChange = { value ->
@@ -38,7 +54,11 @@ object Main {
                     modifier = Modifier
                         .wrapContentSize()
                         .align(Alignment.CenterEnd)
-                        .focusable(true)
+                        .focusRequester(buttonFocusReq)
+                        .focusable()
+                        .focusProperties {
+                            previous = textFieldFocusReq
+                        }
                         .padding(end = 8.dp),
                     onClick = { dispatch(Event.QuerySent) }) {
                     Text("Submit")
