@@ -11,11 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,7 +66,7 @@ data class Model(val query: String = "") : Parcelable
 @Composable
 fun View(model: Model, dispatch: (Event) -> Unit) {
     Column {
-        BasicTextField(value = model.query, onValueChange = {
+        TextField(value = model.query, onValueChange = {
             dispatch(Event.QueryChanged(it))
         })
         Text(text = "You're looking for: " + model.query)
