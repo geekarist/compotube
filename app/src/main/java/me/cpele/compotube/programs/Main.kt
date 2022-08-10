@@ -3,16 +3,21 @@
 package me.cpele.compotube.programs
 
 import android.os.Parcelable
+import android.view.KeyEvent
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.text.input.ImeAction
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ModifierX.focusableWithArrowKeys
 import me.cpele.compotube.mvu.Change
@@ -33,23 +38,26 @@ object Main {
                 TextField(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusableWithArrowKeys(),
+                        .focusableWithArrowKeys()
+                        .onKeyEvent { event ->
+                            if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
+                                dispatch(Event.QuerySent)
+                                true
+                            } else {
+                                false
+                            }
+                        },
                     singleLine = true,
                     value = model.query,
                     placeholder = { Text("Search Compotube") },
                     onValueChange = { value ->
                         dispatch(Event.QueryChanged(value))
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        dispatch(Event.QuerySent)
+                    })
                 )
-                Button(
-                    modifier = Modifier
-                        .wrapContentSize()
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 8.dp)
-                        .focusableWithArrowKeys(),
-                    onClick = { dispatch(Event.QuerySent) }) {
-                    Text("Submit")
-                }
             }
         }
     }
