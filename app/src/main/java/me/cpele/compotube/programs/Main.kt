@@ -12,11 +12,9 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import kotlinx.parcelize.Parcelize
+import me.cpele.compotube.ModifierX.focusableWithArrowKeys
 import me.cpele.compotube.mvu.Change
 import me.cpele.compotube.mvu.Effect
 
@@ -31,18 +29,11 @@ object Main {
             Box(
                 Modifier
                     .wrapContentHeight()
-                    .focusable(false)
             ) {
-                val buttonFocusReq = FocusRequester()
-                val textFieldFocusReq = FocusRequester()
                 TextField(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(textFieldFocusReq)
-                        .focusable()
-                        .focusProperties {
-                            next = buttonFocusReq
-                        },
+                        .focusableWithArrowKeys(),
                     singleLine = true,
                     value = model.query,
                     placeholder = { Text("Search Compotube") },
@@ -54,12 +45,8 @@ object Main {
                     modifier = Modifier
                         .wrapContentSize()
                         .align(Alignment.CenterEnd)
-                        .focusRequester(buttonFocusReq)
-                        .focusable()
-                        .focusProperties {
-                            previous = textFieldFocusReq
-                        }
-                        .padding(end = 8.dp),
+                        .padding(end = 8.dp)
+                        .focusableWithArrowKeys(),
                     onClick = { dispatch(Event.QuerySent) }) {
                     Text("Submit")
                 }
