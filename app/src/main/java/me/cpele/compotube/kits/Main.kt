@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package me.cpele.compotube.programs
+package me.cpele.compotube.kits
 
 import android.os.Parcelable
 import android.view.KeyEvent

@@ -18,8 +18,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import me.cpele.compotube.kits.Main
 import me.cpele.compotube.mvu.Effect
-import me.cpele.compotube.programs.Main
 import me.cpele.compotube.ui.theme.CompotubeTheme
 
 class MainActivity : ComponentActivity() {
