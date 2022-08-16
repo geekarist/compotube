@@ -94,7 +94,7 @@ class SampleYouTubeDataApiActivity : Activity(), PermissionCallbacks {
      * of the preconditions are not satisfied, the app will prompt the user as
      * appropriate.
      */
-    private fun getResultsFromApi(): Unit {
+    private fun getResultsFromApi() {
         if (!isGooglePlayServicesAvailable()) {
             acquireGooglePlayServices()
         } else if (mCredential!!.selectedAccountName == null) {
