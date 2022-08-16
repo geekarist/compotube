@@ -60,9 +60,11 @@ dependencies {
     implementation 'com.google.android.gms:play-services-auth:20.2.0'
     implementation('com.google.api-client:google-api-client-android:2.0.0') {
         exclude group: 'com.google.guava'
+        exclude group: 'org.apache.httpcomponents'
     }
     implementation('com.google.apis:google-api-services-youtube:v3-rev183-1.22.0') {
         exclude group: 'com.google.guava'
+        exclude group: 'org.apache.httpcomponents'
     }
 
     testImplementation 'junit:junit:4.13.2'
