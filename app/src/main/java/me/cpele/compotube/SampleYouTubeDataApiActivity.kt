@@ -13,6 +13,7 @@ import android.os.AsyncTask
 import android.os.Bundle
 import android.text.TextUtils
 import android.text.method.ScrollingMovementMethod
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -306,6 +307,7 @@ class SampleYouTubeDataApiActivity : Activity(), PermissionCallbacks {
             return try {
                 dataFromApi
             } catch (e: Exception) {
+                Log.e(javaClass.simpleName, "Error calling API", e)
                 mLastError = e
                 cancel(true)
                 null
