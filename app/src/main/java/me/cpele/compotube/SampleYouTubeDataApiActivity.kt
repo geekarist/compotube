@@ -65,7 +65,7 @@ class SampleYouTubeDataApiActivity : Activity(), PermissionCallbacks {
         mCallApiButton!!.setOnClickListener {
             mCallApiButton!!.isEnabled = false
             mOutputText!!.text = ""
-            resultsFromApi
+            getResultsFromApi()
             mCallApiButton!!.isEnabled = true
         }
         activityLayout.addView(mCallApiButton)
@@ -94,18 +94,17 @@ class SampleYouTubeDataApiActivity : Activity(), PermissionCallbacks {
      * of the preconditions are not satisfied, the app will prompt the user as
      * appropriate.
      */
-    private val resultsFromApi: Unit
-        get() {
-            if (!isGooglePlayServicesAvailable) {
-                acquireGooglePlayServices()
-            } else if (mCredential!!.selectedAccountName == null) {
-                chooseAccount()
-            } else if (!isDeviceOnline) {
-                mOutputText!!.text = "No network connection available."
-            } else {
-                MakeRequestTask(mCredential).execute()
-            }
+    private fun getResultsFromApi(): Unit {
+        if (!isGooglePlayServicesAvailable()) {
+            acquireGooglePlayServices()
+        } else if (mCredential!!.selectedAccountName == null) {
+            chooseAccount()
+        } else if (!isDeviceOnline()) {
+            mOutputText!!.text = "No network connection available."
+        } else {
+            MakeRequestTask(mCredential).execute()
         }
+    }
 
     /**
      * Attempts to set the account used with the API credentials. If an account
@@ -127,7 +126,7 @@ class SampleYouTubeDataApiActivity : Activity(), PermissionCallbacks {
                 .getString(PREF_ACCOUNT_NAME, null)
             if (accountName != null) {
                 mCredential!!.selectedAccountName = accountName
-                resultsFromApi
+                getResultsFromApi()
             } else {
                 // Start a dialog from which the user can choose an account
                 startActivityForResult(
@@ -165,7 +164,7 @@ class SampleYouTubeDataApiActivity : Activity(), PermissionCallbacks {
                 mOutputText!!.text = "This app requires Google Play Services. Please install " +
                         "Google Play Services on your device and relaunch this app."
             } else {
-                resultsFromApi
+                getResultsFromApi()
             }
             REQUEST_ACCOUNT_PICKER -> if (resultCode == RESULT_OK && data.extras != null) {
                 val accountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
@@ -175,11 +174,11 @@ class SampleYouTubeDataApiActivity : Activity(), PermissionCallbacks {
                     editor.putString(PREF_ACCOUNT_NAME, accountName)
                     editor.apply()
                     mCredential!!.selectedAccountName = accountName
-                    resultsFromApi
+                    getResultsFromApi()
                 }
             }
             REQUEST_AUTHORIZATION -> if (resultCode == RESULT_OK) {
-                resultsFromApi
+                getResultsFromApi()
             }
         }
     }
@@ -229,24 +228,22 @@ class SampleYouTubeDataApiActivity : Activity(), PermissionCallbacks {
      * Checks whether the device currently has a network connection.
      * @return true if the device has a network connection, false otherwise.
      */
-    private val isDeviceOnline: Boolean
-        get() {
-            val connMgr = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
-            val networkInfo = connMgr.activeNetworkInfo
-            return networkInfo != null && networkInfo.isConnected
-        }
+    private fun isDeviceOnline(): Boolean {
+        val connMgr = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connMgr.activeNetworkInfo
+        return networkInfo != null && networkInfo.isConnected
+    }
 
     /**
      * Check that Google Play services APK is installed and up to date.
      * @return true if Google Play Services is available and up to
      * date on this device; false otherwise.
      */
-    private val isGooglePlayServicesAvailable: Boolean
-        get() {
-            val apiAvailability = GoogleApiAvailability.getInstance()
-            val connectionStatusCode = apiAvailability.isGooglePlayServicesAvailable(this)
-            return connectionStatusCode == ConnectionResult.SUCCESS
-        }
+    private fun isGooglePlayServicesAvailable(): Boolean {
+        val apiAvailability = GoogleApiAvailability.getInstance()
+        val connectionStatusCode = apiAvailability.isGooglePlayServicesAvailable(this)
+        return connectionStatusCode == ConnectionResult.SUCCESS
+    }
 
     /**
      * Attempt to resolve a missing, out-of-date, invalid or disabled Google
@@ -305,7 +302,7 @@ class SampleYouTubeDataApiActivity : Activity(), PermissionCallbacks {
         @Deprecated("Deprecated in Java")
         override fun doInBackground(vararg params: Void?): List<String?>? {
             return try {
-                dataFromApi
+                getDataFromApi()
             } catch (e: Exception) {
                 Log.e(javaClass.simpleName, "Error calling API", e)
                 mLastError = e
@@ -319,25 +316,24 @@ class SampleYouTubeDataApiActivity : Activity(), PermissionCallbacks {
          * @return List of Strings containing information about the channel.
          * @throws IOException
          */
-        @get:Throws(IOException::class)
-        private val dataFromApi: List<String?>
-            get() {
-                // Get a list of up to 10 files.
-                val channelInfo: MutableList<String?> = ArrayList()
-                val result = mService!!.channels().list("snippet,contentDetails,statistics")
-                    .setForUsername("GoogleDevelopers")
-                    .execute()
-                val channels = result.items
-                if (channels != null) {
-                    val channel = channels[0]
-                    channelInfo.add(
-                        "This channel's ID is " + channel.id + ". " +
-                                "Its title is '" + channel.snippet.title + ", " +
-                                "and it has " + channel.statistics.viewCount + " views."
-                    )
-                }
-                return channelInfo
+        @Throws(IOException::class)
+        private fun getDataFromApi(): List<String?> {
+            // Get a list of up to 10 files.
+            val channelInfo: MutableList<String?> = ArrayList()
+            val result = mService!!.channels().list("snippet,contentDetails,statistics")
+                .setForUsername("GoogleDevelopers")
+                .execute()
+            val channels = result.items
+            if (channels != null) {
+                val channel = channels[0]
+                channelInfo.add(
+                    "This channel's ID is " + channel.id + ". " +
+                            "Its title is '" + channel.snippet.title + ", " +
+                            "and it has " + channel.statistics.viewCount + " views."
+                )
             }
+            return channelInfo
+        }
 
         @Deprecated("Deprecated in Java")
         override fun onPreExecute() {
