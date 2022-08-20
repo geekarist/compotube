@@ -37,14 +37,18 @@ class MainActivity : ComponentActivity() {
                         val change = Main.update(model, event)
                         model = change.model
                         change.effects.forEach { effect ->
-                            when (effect) {
-                                is Effect.Toast -> toast(effect.text)
-                                is Effect.Log -> log(effect.text)
-                            }
+                            execute(effect)
                         }
                     })
                 }
             }
+        }
+    }
+
+    private fun execute(effect: Effect) {
+        when (effect) {
+            is Effect.Toast -> toast(effect.text)
+            is Effect.Log -> log(effect.text)
         }
     }
 
