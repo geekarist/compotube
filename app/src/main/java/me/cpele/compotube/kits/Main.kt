@@ -6,10 +6,7 @@ import android.os.Parcelable
 import android.view.KeyEvent
 import androidx.activity.result.ActivityResult
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -22,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ModifierX.focusableWithArrowKeys
 import me.cpele.compotube.R
@@ -69,17 +67,13 @@ object Main {
         } else {
             Box {
                 Column(
-                    modifier = Modifier.align(Alignment.Center)
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val appName = stringResource(id = R.string.app_name)
-                    Text(
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        text = "To use $appName you need to be logged in"
-                    )
-                    Button(
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        onClick = { dispatch(Event.LoginRequested) }
-                    ) {
+                    Text(text = "To use $appName you need to be logged in")
+                    Button(onClick = { dispatch(Event.LoginRequested) }) {
                         Text("Login")
                     }
                 }
