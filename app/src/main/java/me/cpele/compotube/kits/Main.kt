@@ -20,9 +20,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ModifierX.focusableWithArrowKeys
+import me.cpele.compotube.R
 import me.cpele.compotube.mvu.Change
 import me.cpele.compotube.mvu.Effect
 
@@ -66,11 +68,20 @@ object Main {
             }
         } else {
             Box {
-                Button(
-                    modifier = Modifier.align(Alignment.Center),
-                    onClick = { dispatch(Event.LoginRequested) }
+                Column(
+                    modifier = Modifier.align(Alignment.Center)
                 ) {
-                    Text("Login")
+                    val appName = stringResource(id = R.string.app_name)
+                    Text(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        text = "To use $appName you need to be logged in"
+                    )
+                    Button(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        onClick = { dispatch(Event.LoginRequested) }
+                    ) {
+                        Text("Login")
+                    }
                 }
             }
         }
