@@ -98,9 +98,9 @@ object Main {
             is Event.QuerySent ->
                 Change(model, Effect.Toast("Query sent: ${model.query}"))
             is Event.LoginRequested ->
-                Change(model, Effect.Toast("Login requested (TODO)"))
+                Change(model, Effect.ChooseAccount)
             is Event.AccountChosen ->
-                Change(model, Effect.Log("Account chosen: ${event.result}"))
+                Change(model, Effect.Toast("Account chosen: ${event.result}"))
         }
 }
 
