@@ -8,6 +8,7 @@ class Change<M>(val model: M, vararg val effects: Effect) {
 sealed class Effect {
     data class Toast(val text: String) : Effect()
     data class Log(val text: String) : Effect()
+    object ChooseAccount : Effect()
 }
 
 
