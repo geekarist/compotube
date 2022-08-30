@@ -2,6 +2,7 @@
 
 package me.cpele.compotube.kits
 
+import android.accounts.AccountManager
 import android.os.Parcelable
 import android.view.KeyEvent
 import androidx.activity.result.ActivityResult
@@ -20,6 +21,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ModifierX.focusableWithArrowKeys
 import me.cpele.compotube.R
@@ -29,7 +31,13 @@ import me.cpele.compotube.mvu.Effect
 object Main {
 
     @Parcelize
-    data class Model(val isLoggedIn: Boolean = false, val query: String = "") : Parcelable
+    data class Model(
+        val query: String = "",
+        val accountName: String? = null
+    ) : Parcelable {
+        @IgnoredOnParcel
+        val isLoggedIn: Boolean = accountName != null
+    }
 
     @Composable
     fun View(model: Model, dispatch: (Event) -> Unit) {
@@ -39,29 +47,37 @@ object Main {
                     Modifier
                         .wrapContentHeight()
                 ) {
-                    TextField(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusableWithArrowKeys()
-                            .onKeyEvent { event ->
-                                if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
-                                    dispatch(Event.QuerySent)
-                                    true
-                                } else {
-                                    false
-                                }
+                    Row {
+                        TextField(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusableWithArrowKeys()
+                                .onKeyEvent { event ->
+                                    if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
+                                        dispatch(Event.QuerySent)
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                },
+                            singleLine = true,
+                            value = model.query,
+                            placeholder = { Text("Search Compotube") },
+                            onValueChange = { value ->
+                                dispatch(Event.QueryChanged(value))
                             },
-                        singleLine = true,
-                        value = model.query,
-                        placeholder = { Text("Search Compotube") },
-                        onValueChange = { value ->
-                            dispatch(Event.QueryChanged(value))
-                        },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = {
-                            dispatch(Event.QuerySent)
-                        })
-                    )
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = {
+                                dispatch(Event.QuerySent)
+                            })
+                        )
+                        val accountName = model.accountName
+                            ?: throw IllegalStateException("Missing account name")
+                        Text(
+                            modifier = Modifier.wrapContentWidth(unbounded = true),
+                            text = accountName
+                        )
+                    }
                 }
             }
         } else {
@@ -99,8 +115,11 @@ object Main {
                 Change(model, Effect.Toast("Query sent: ${model.query}"))
             is Event.LoginRequested ->
                 Change(model, Effect.ChooseAccount)
-            is Event.AccountChosen ->
-                Change(model, Effect.Toast("Account chosen: ${event.result}"))
+            is Event.AccountChosen -> {
+                val accountName = event.result.data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
+                val newModel = model.copy(accountName = accountName)
+                Change(newModel, Effect.Toast("Account chosen: $accountName"))
+            }
         }
 }
 
