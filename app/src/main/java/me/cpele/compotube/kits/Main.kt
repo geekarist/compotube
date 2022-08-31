@@ -50,7 +50,7 @@ object Main {
                     Row {
                         TextField(
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .weight(weight = 1f, fill = true)
                                 .focusableWithArrowKeys()
                                 .onKeyEvent { event ->
                                     if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
@@ -74,7 +74,7 @@ object Main {
                         val accountName = model.accountName
                             ?: throw IllegalStateException("Missing account name")
                         Text(
-                            modifier = Modifier.wrapContentWidth(unbounded = true),
+                            modifier = Modifier.wrapContentWidth(),
                             text = accountName
                         )
                     }
