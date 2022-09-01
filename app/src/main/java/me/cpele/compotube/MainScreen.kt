@@ -7,9 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -28,17 +26,20 @@ fun MainScreen() {
     val launcher = rememberLauncherForActivityResult(contract = contract) { result ->
         eventFlow.value = Main.Event.AccountChosen(result)
     }
-
     var model by rememberSaveable { mutableStateOf(Main.Model()) }
     val context = LocalContext.current.applicationContext
+
     LaunchedEffect(Unit) { // When opening the screen, collect events
         eventFlow.filterNotNull().collect { event ->
             val change = Main.update(model, event)
             model = change.model
             change.effects.forEach { effect ->
-                execute(context, effect, launcher) { event ->
-                    eventFlow.value = event
-                }
+                execute(
+                    context,
+                    effect,
+                    launch = { launcher.launch(it) },
+                    dispatch = { eventFlow.value = it }
+                )
             }
         }
     }
@@ -51,14 +52,14 @@ fun MainScreen() {
 private fun execute(
     context: Context,
     effect: Effect,
-    launcher: ManagedActivityResultLauncher<Intent, ActivityResult>,
+    launch: (Intent) -> Unit,
     dispatch: (Main.Event) -> Unit
 ) {
     when (effect) {
         is Effect.Toast -> toast(context, effect.text)
         is Effect.Log -> log(effect.text)
         Effect.GetAppContext -> dispatch(Main.Event.AppContextReceived(context.applicationContext))
-        is Effect.ActForResult -> launcher.launch(effect.intent)
+        is Effect.ActForResult -> launch(effect.intent)
     }
 }
 
