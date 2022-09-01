@@ -39,7 +39,9 @@ fun MainScreen() {
             val change = Main.update(model, event)
             model = change.model
             change.effects.forEach { effect ->
-                execute(context, effect, launcher)
+                execute(context, effect, launcher) { event ->
+                    eventFlow.value = event
+                }
             }
         }
     }
@@ -52,13 +54,23 @@ fun MainScreen() {
 private fun execute(
     context: Context,
     effect: Effect,
-    launcher: ManagedActivityResultLauncher<Intent, ActivityResult>
+    launcher: ManagedActivityResultLauncher<Intent, ActivityResult>,
+    dispatch: (Main.Event) -> Unit
 ) {
     when (effect) {
         is Effect.Toast -> toast(context, effect.text)
         is Effect.Log -> log(effect.text)
-        is Effect.ChooseAccount -> chooseAccount(context, launcher)
+        Effect.GetCredential -> getCredential(context, dispatch)
+        is Effect.ActForResult -> launcher.launch(effect.intent)
     }
+}
+
+private fun getCredential(context: Context, dispatch: (Main.Event) -> Unit) {
+    val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
+    val backOff = ExponentialBackOff()
+    val appContext = context.applicationContext
+    val credential = GoogleAccountCredential.usingOAuth2(appContext, scopes).setBackOff(backOff)
+    dispatch(Main.Event.CredentialReceived(credential))
 }
 
 private fun log(text: String) {
@@ -69,14 +81,3 @@ private fun toast(context: Context, text: String) {
     Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
 }
 
-private fun chooseAccount(
-    context: Context,
-    launcher: ManagedActivityResultLauncher<Intent, ActivityResult>
-) {
-    val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
-    val backOff = ExponentialBackOff()
-    val appContext = context.applicationContext
-    val credential = GoogleAccountCredential.usingOAuth2(appContext, scopes).setBackOff(backOff)
-    val chooseAccountIntent = credential.newChooseAccountIntent()
-    launcher.launch(chooseAccountIntent)
-}

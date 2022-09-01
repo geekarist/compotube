@@ -21,6 +21,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ModifierX.focusableWithArrowKeys
@@ -102,12 +103,17 @@ object Main {
         object LoginRequested : Event()
         data class QueryChanged(val value: String) : Event()
         data class AccountChosen(val result: ActivityResult) : Event()
+        data class CredentialReceived(val credential: GoogleAccountCredential) : Event()
     }
 
     fun update(model: Model, event: Event): Change<Model> =
         when (event) {
             is Event.LoginRequested ->
-                Change(model, Effect.ChooseAccount)
+                Change(model, Effect.GetCredential)
+            is Event.CredentialReceived -> {
+                val intent = event.credential.newChooseAccountIntent()
+                Change(model, Effect.ActForResult(intent))
+            }
             is Event.AccountChosen -> {
                 val accountName = event.result.data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
                 val newModel = model.copy(accountName = accountName)
