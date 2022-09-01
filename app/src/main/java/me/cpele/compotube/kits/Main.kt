@@ -106,13 +106,6 @@ object Main {
 
     fun update(model: Model, event: Event): Change<Model> =
         when (event) {
-            is Event.QueryChanged ->
-                Change(
-                    model.copy(query = event.value),
-                    Effect.Log("You're looking for ${event.value}")
-                )
-            is Event.QuerySent ->
-                Change(model, Effect.Toast("Query sent: ${model.query}"))
             is Event.LoginRequested ->
                 Change(model, Effect.ChooseAccount)
             is Event.AccountChosen -> {
@@ -120,6 +113,13 @@ object Main {
                 val newModel = model.copy(accountName = accountName)
                 Change(newModel, Effect.Toast("Account chosen: $accountName"))
             }
+            is Event.QueryChanged ->
+                Change(
+                    model.copy(query = event.value),
+                    Effect.Log("You're looking for ${event.value}")
+                )
+            is Event.QuerySent ->
+                Change(model, Effect.Toast("Query sent: ${model.query}"))
         }
 }
 
