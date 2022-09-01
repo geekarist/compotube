@@ -3,6 +3,7 @@
 package me.cpele.compotube.kits
 
 import android.accounts.AccountManager
+import android.content.Context
 import android.os.Parcelable
 import android.view.KeyEvent
 import androidx.activity.result.ActivityResult
@@ -22,6 +23,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.util.ExponentialBackOff
+import com.google.api.services.youtube.YouTubeScopes
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ModifierX.focusableWithArrowKeys
@@ -107,15 +110,21 @@ object Main {
         object LoginRequested : Event()
         data class QueryChanged(val value: String) : Event()
         data class AccountChosen(val result: ActivityResult) : Event()
-        data class CredentialReceived(val credential: GoogleAccountCredential) : Event()
+        data class AppContextReceived(val appContext: Context) : Event()
     }
 
     fun update(model: Model, event: Event): Change<Model> =
         when (event) {
             is Event.LoginRequested ->
-                Change(model, Effect.GetCredential)
-            is Event.CredentialReceived -> {
-                val intent = event.credential.newChooseAccountIntent()
+                Change(model, Effect.GetAppContext)
+            is Event.AppContextReceived -> {
+                val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
+                val backOff = ExponentialBackOff()
+                val appContext = event.appContext
+                val credential = GoogleAccountCredential
+                    .usingOAuth2(appContext, scopes)
+                    .setBackOff(backOff)
+                val intent = credential.newChooseAccountIntent()
                 Change(model, Effect.ActForResult(intent))
             }
             is Event.AccountChosen -> {

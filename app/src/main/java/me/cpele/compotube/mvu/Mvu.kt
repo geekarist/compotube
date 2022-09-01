@@ -11,7 +11,7 @@ sealed class Effect {
     data class Toast(val text: String) : Effect()
     data class Log(val text: String) : Effect()
     data class ActForResult(val intent: Intent) : Effect()
-    object GetCredential : Effect()
+    object GetAppContext : Effect()
 }
 
 

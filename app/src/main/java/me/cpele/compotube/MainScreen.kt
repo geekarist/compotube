@@ -14,9 +14,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
-import com.google.api.client.util.ExponentialBackOff
-import com.google.api.services.youtube.YouTubeScopes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import me.cpele.compotube.kits.Main
@@ -60,17 +57,9 @@ private fun execute(
     when (effect) {
         is Effect.Toast -> toast(context, effect.text)
         is Effect.Log -> log(effect.text)
-        Effect.GetCredential -> getCredential(context, dispatch)
+        Effect.GetAppContext -> dispatch(Main.Event.AppContextReceived(context.applicationContext))
         is Effect.ActForResult -> launcher.launch(effect.intent)
     }
-}
-
-private fun getCredential(context: Context, dispatch: (Main.Event) -> Unit) {
-    val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
-    val backOff = ExponentialBackOff()
-    val appContext = context.applicationContext
-    val credential = GoogleAccountCredential.usingOAuth2(appContext, scopes).setBackOff(backOff)
-    dispatch(Main.Event.CredentialReceived(credential))
 }
 
 private fun log(text: String) {
