@@ -47,8 +47,12 @@ object Main {
                 Box(
                     Modifier
                         .wrapContentHeight()
+                        .padding(16.dp)
                 ) {
-                    Row {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         TextField(
                             modifier = Modifier
                                 .weight(weight = 1f, fill = true)
