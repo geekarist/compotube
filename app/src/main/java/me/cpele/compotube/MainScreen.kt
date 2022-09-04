@@ -12,6 +12,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import me.cpele.compotube.kits.Main
@@ -19,6 +22,7 @@ import me.cpele.compotube.mvu.Effect
 
 @Composable
 fun MainScreen() {
+
     val eventFlow = remember {
         MutableStateFlow<Main.Event?>(null)
     }
@@ -28,8 +32,23 @@ fun MainScreen() {
     }
     var model by rememberSaveable { mutableStateOf(Main.Model()) }
     val context = LocalContext.current.applicationContext
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(Unit) { // When opening the screen, collect events
+
+        lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
+
+            override fun onCreate(owner: LifecycleOwner) {
+                super.onCreate(owner)
+                eventFlow.value = Main.Event.Init
+            }
+
+            override fun onDestroy(owner: LifecycleOwner) {
+                eventFlow.value = Main.Event.Dispose
+                super.onDestroy(owner)
+            }
+        })
+
         eventFlow.filterNotNull().collect { event ->
             val change = Main.update(model, event)
             model = change.model
@@ -56,15 +75,39 @@ private fun execute(
     dispatch: (Main.Event) -> Unit
 ) {
     when (effect) {
+        is Effect.LoadPref -> loadStrPref(
+            context = context,
+            name = effect.name,
+            defValue = effect.defValue,
+            onPrefLoaded = { dispatch(Main.Event.StrPrefLoaded(it)) }
+        )
         is Effect.Toast -> toast(context, effect.text)
-        is Effect.Log -> log(effect.text)
+        is Effect.Log -> log(effect.text, effect.throwable)
         Effect.GetAppContext -> dispatch(Main.Event.AppContextReceived(context.applicationContext))
         is Effect.ActForResult -> launch(effect.intent)
+        is Effect.SavePref -> saveStrPref(
+            context = context,
+            name = effect.name,
+            value = effect.value
+        )
     }
 }
 
-private fun log(text: String) {
-    Log.d("", text)
+fun saveStrPref(context: Context, name: String, value: String) {
+    Log.d("", "TODO: Save pref")
+}
+
+fun loadStrPref(
+    context: Context,
+    name: String,
+    defValue: String?,
+    onPrefLoaded: (String?) -> Unit
+) {
+    Log.d("", "TODO: Load pref")
+}
+
+private fun log(text: String, throwable: Throwable?) {
+    Log.d("", text, throwable)
 }
 
 private fun toast(context: Context, text: String) {
