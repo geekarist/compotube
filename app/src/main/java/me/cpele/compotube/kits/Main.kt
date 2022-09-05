@@ -5,6 +5,7 @@ package me.cpele.compotube.kits
 import android.accounts.AccountManager
 import android.content.Context
 import android.os.Parcelable
+import android.util.Log
 import android.view.KeyEvent
 import androidx.activity.result.ActivityResult
 import androidx.compose.foundation.focusable
@@ -46,7 +47,8 @@ object Main {
 
     @Composable
     fun View(model: Model, dispatch: (Event) -> Unit) {
-        if (model.isLoggedIn) {
+        if (model.isLoggedIn.also { Log.d("", "Logged in? $it") }) {
+            Log.d("", "Account name: ${model.accountName}")
             Column(modifier = Modifier.focusable(false)) {
                 Box(
                     Modifier
@@ -185,8 +187,15 @@ object Main {
             }
             Model(
                 query = jsonObj.optString("query"),
-                accountName = jsonObj.optString("accountName")
+                accountName = getStringOrNull(jsonObj, "accountName")
             )
         } ?: Model()
+
+    private fun getStringOrNull(jsonObj: JSONObject, name: String) =
+        if (jsonObj.isNull(name)) {
+            null
+        } else {
+            jsonObj.getString(name)
+        }
 }
 
