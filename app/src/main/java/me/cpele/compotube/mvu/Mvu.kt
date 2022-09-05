@@ -13,6 +13,7 @@ sealed class Effect {
     data class Log(val text: String, val throwable: Throwable? = null, val tag: String) : Effect()
     data class ActForResult(val intent: Intent) : Effect()
     data class SavePref(val name: String, val value: String) : Effect()
+    data class Search(val query: String) : Effect()
     object GetAppContext : Effect()
 }
 

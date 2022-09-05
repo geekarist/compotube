@@ -16,6 +16,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.client.util.ExponentialBackOff
+import com.google.api.services.youtube.YouTube
+import com.google.api.services.youtube.YouTubeScopes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import me.cpele.compotube.kits.Main
@@ -34,6 +40,16 @@ fun MainScreen() {
     var model by rememberSaveable { mutableStateOf(Main.Model()) }
     val context = LocalContext.current.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
+    val youTube = remember {
+        val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
+        val backOff = ExponentialBackOff()
+        val credential = GoogleAccountCredential
+            .usingOAuth2(context, scopes)
+            .setBackOff(backOff)
+        val transport = NetHttpTransport()
+        val jacksonFactory = JacksonFactory()
+        YouTube.Builder(transport, jacksonFactory, credential).build()
+    }
 
     LaunchedEffect(Unit) {
 
@@ -50,10 +66,12 @@ fun MainScreen() {
                 handleEvent(
                     context,
                     model,
-                    event = Main.Event.Dispose,
+                    Main.Event.Dispose,
+                    youTube,
                     onNewModel = {}, // Won't change the model
                     launchIntent = {}, // Won't launch intent
-                    dispatch = {}) // Won't dispatch
+                    dispatch = {} // Won't dispatch
+                )
                 super.onDestroy(owner)
             }
         })
@@ -61,7 +79,7 @@ fun MainScreen() {
         // Start collecting events
         eventFlow.filterNotNull().collect { event ->
             handleEvent(
-                context, model, event,
+                context, model, event, youTube,
                 onNewModel = { newModel: Main.Model -> model = newModel },
                 launchIntent = { launcher.launch(it) },
                 dispatch = { eventFlow.value = it }
@@ -78,6 +96,7 @@ private fun handleEvent(
     context: Context,
     model: Main.Model,
     event: Main.Event,
+    youTube: YouTube,
     onNewModel: (Main.Model) -> Unit,
     launchIntent: (Intent) -> Unit,
     dispatch: (Main.Event) -> Unit
@@ -88,6 +107,7 @@ private fun handleEvent(
         execute(
             context,
             effect,
+            youTube,
             launch = launchIntent,
             dispatch = dispatch
         )
@@ -97,6 +117,7 @@ private fun handleEvent(
 private fun execute(
     context: Context,
     effect: Effect,
+    youTube: YouTube,
     launch: (Intent) -> Unit,
     dispatch: (Main.Event) -> Unit
 ) {
@@ -111,12 +132,18 @@ private fun execute(
         is Effect.Log -> log(effect.tag, effect.text, effect.throwable)
         Effect.GetAppContext -> dispatch(Main.Event.AppContextReceived(context.applicationContext))
         is Effect.ActForResult -> launch(effect.intent)
+        is Effect.Search -> search(youTube, effect.query, dispatch)
         is Effect.SavePref -> saveStrPref(
             context = context,
             name = effect.name,
             value = effect.value
         )
     }
+}
+
+fun search(youTube: YouTube, query: String, dispatch: (Main.Event) -> Unit) {
+    val result = youTube.search().list("TODO").setQ(query).execute()
+    dispatch(Main.Event.ResultReceived(result))
 }
 
 fun saveStrPref(context: Context, name: String, value: String) {

@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.util.ExponentialBackOff
 import com.google.api.services.youtube.YouTubeScopes
+import com.google.api.services.youtube.model.SearchListResponse
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ModifierX.focusableWithArrowKeys
@@ -116,6 +117,7 @@ object Main {
         data class QueryChanged(val value: String) : Event()
         data class StrPrefLoaded(val value: String?) : Event()
         object QuerySent : Event()
+        data class ResultReceived(val result: SearchListResponse?) : Event()
         object Dispose : Event()
     }
 
@@ -153,10 +155,23 @@ object Main {
                         )
                     )
                 is Event.QuerySent ->
-                    Change(model, Effect.Toast("Query sent: ${model.query}"))
+                    Change(
+                        model,
+                        Effect.Toast("Query sent: ${model.query}"),
+                        Effect.Search(model.query)
+                    )
+                is Event.ResultReceived -> {
+                    val result = event.result
+                    val items = result?.items ?: emptyList()
+                    Change(
+                        model,
+                        Effect.Toast("Received ${items.size} results"),
+                        Effect.Log(tag = javaClass.simpleName, text = "Received result: $result")
+                    )
+                }
                 Event.Dispose -> {
                     val jsonStr = modelToJsonStr(model)
-                    val savePrefEffect = Effect.SavePref(Main.javaClass.name, jsonStr)
+                    val savePrefEffect = Effect.SavePref(javaClass.name, jsonStr)
                     Change(model, savePrefEffect)
                 }
             }
