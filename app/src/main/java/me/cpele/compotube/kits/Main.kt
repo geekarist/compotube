@@ -173,7 +173,6 @@ object Main {
     private fun modelToJsonStr(model: Model): String =
         JSONObject().apply {
             put("accountName", model.accountName)
-            put("isLoggedIn", model.isLoggedIn)
             put("query", model.query)
         }.toString()
 
@@ -181,13 +180,13 @@ object Main {
         value?.let {
             val jsonObj = try {
                 JSONObject(value)
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Value must be a valid JSON string", e)
+            } catch (t: Throwable) {
+                throw IllegalArgumentException("Error parsing JSON: $value", t)
             }
             Model(
-                query = jsonObj.getString("query"),
-                accountName = jsonObj.getString("accountName")
+                query = jsonObj.optString("query"),
+                accountName = jsonObj.optString("accountName")
             )
-        } ?: throw IllegalStateException("Input value must not be null")
+        } ?: Model()
 }
 
