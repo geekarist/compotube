@@ -5,6 +5,7 @@ package me.cpele.compotube
 // See https://stackoverflow.com/a/63877349
 import android.content.Context
 import android.content.Intent
+import android.preference.PreferenceManager
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -119,7 +120,8 @@ private fun execute(
 }
 
 fun saveStrPref(context: Context, name: String, value: String) {
-    Log.d("chrp", "TODO: Save pref")
+    val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+    prefs.edit().putString(name, value).apply()
 }
 
 fun loadStrPref(
@@ -128,7 +130,9 @@ fun loadStrPref(
     defValue: String?,
     onPrefLoaded: (String?) -> Unit
 ) {
-    Log.d("chrp", "TODO: load pref")
+    val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+    val value = prefs.getString(name, defValue)
+    onPrefLoaded(value)
 }
 
 private fun log(tag: String, text: String, throwable: Throwable?) {
