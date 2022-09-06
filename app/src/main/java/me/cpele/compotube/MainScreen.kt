@@ -1,6 +1,7 @@
 package me.cpele.compotube
 
-// Explicitly importing getValue and setValue fixes an error
+// Explicitly importing getValue and setValue
+// (`androidx.compose.runtime.*`) fixes an error
 // when using `by rememberSaveable { mutableStateOf(...) }`
 // See https://stackoverflow.com/a/63877349
 import android.content.Context
@@ -40,12 +41,12 @@ fun MainScreen() {
     var model by rememberSaveable { mutableStateOf(Main.Model()) }
     val context = LocalContext.current.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
-    val youTube = remember {
+    val credential = remember {
         val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
         val backOff = ExponentialBackOff()
-        val credential = GoogleAccountCredential
-            .usingOAuth2(context, scopes)
-            .setBackOff(backOff)
+        GoogleAccountCredential.usingOAuth2(context, scopes).setBackOff(backOff)
+    }
+    val youTube = remember {
         val transport = NetHttpTransport()
         val jacksonFactory = JacksonFactory()
         YouTube.Builder(transport, jacksonFactory, credential).build()
@@ -67,6 +68,7 @@ fun MainScreen() {
                     context,
                     model,
                     Main.Event.LifecycleDestroyed,
+                    credential,
                     youTube,
                     onNewModel = {}, // Won't change the model
                     launchIntent = {}, // Won't launch intent
@@ -79,7 +81,7 @@ fun MainScreen() {
         // Start collecting events
         eventFlow.filterNotNull().collect { event ->
             handleEvent(
-                context, model, event, youTube,
+                context, model, event, credential, youTube,
                 onNewModel = { newModel: Main.Model -> model = newModel },
                 launchIntent = { launcher.launch(it) },
                 dispatch = { eventFlow.value = it }
@@ -96,6 +98,7 @@ private fun handleEvent(
     context: Context,
     model: Main.Model,
     event: Main.Event,
+    credential: GoogleAccountCredential,
     youTube: YouTube,
     onNewModel: (Main.Model) -> Unit,
     launchIntent: (Intent) -> Unit,
@@ -107,6 +110,7 @@ private fun handleEvent(
         execute(
             context,
             effect,
+            credential,
             youTube,
             launch = launchIntent,
             dispatch = dispatch
@@ -117,6 +121,7 @@ private fun handleEvent(
 private fun execute(
     context: Context,
     effect: Effect,
+    credential: GoogleAccountCredential,
     youTube: YouTube,
     launch: (Intent) -> Unit,
     dispatch: (Main.Event) -> Unit
@@ -130,15 +135,24 @@ private fun execute(
         )
         is Effect.Toast -> toast(context, effect.text)
         is Effect.Log -> log(effect.tag, effect.text, effect.throwable)
-        Effect.GetAppContext -> dispatch(Main.Event.AppContextReceived(context.applicationContext))
-        is Effect.ActForResult -> launch(effect.intent)
         is Effect.Search -> search(youTube, effect.query, dispatch)
         is Effect.SavePref -> saveStrPref(
             context = context,
             name = effect.name,
             value = effect.value
         )
+        Effect.ChooseAccount -> chooseAccount(credential, launch)
+        is Effect.HandleAccountName -> handleAccountName(credential, effect.accountName)
     }
+}
+
+fun handleAccountName(credential: GoogleAccountCredential, accountName: String?) {
+    credential.selectedAccountName = accountName
+}
+
+fun chooseAccount(credential: GoogleAccountCredential, launch: (Intent) -> Unit) {
+    val intent = credential.newChooseAccountIntent()
+    launch(intent)
 }
 
 fun search(youTube: YouTube, query: String, dispatch: (Main.Event) -> Unit) {

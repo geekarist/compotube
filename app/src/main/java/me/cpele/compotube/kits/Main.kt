@@ -3,7 +3,6 @@
 package me.cpele.compotube.kits
 
 import android.accounts.AccountManager
-import android.content.Context
 import android.os.Parcelable
 import android.util.Log
 import android.view.KeyEvent
@@ -23,9 +22,6 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
-import com.google.api.client.util.ExponentialBackOff
-import com.google.api.services.youtube.YouTubeScopes
 import com.google.api.services.youtube.model.SearchListResponse
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -112,7 +108,6 @@ object Main {
     sealed class Event {
         object LifecycleCreated : Event()
         object LoginRequested : Event()
-        data class AppContextReceived(val appContext: Context) : Event()
         data class AccountChosen(val result: ActivityResult) : Event()
         data class QueryChanged(val value: String) : Event()
         data class StrPrefLoaded(val value: String?) : Event()
@@ -124,68 +119,85 @@ object Main {
     fun update(model: Model, event: Event): Change<Model> =
         try {
             when (event) {
-                is Event.LifecycleCreated ->
-                    Change(model, Effect.LoadPref(Main.javaClass.name, null))
-                is Event.StrPrefLoaded ->
-                    Change(modelFromJsonStr(event.value))
-                is Event.LoginRequested ->
-                    Change(model, Effect.GetAppContext)
-                is Event.AppContextReceived -> {
-                    val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
-                    val backOff = ExponentialBackOff()
-                    val appContext = event.appContext
-                    val credential = GoogleAccountCredential
-                        .usingOAuth2(appContext, scopes)
-                        .setBackOff(backOff)
-                    val intent = credential.newChooseAccountIntent()
-                    Change(model, Effect.ActForResult(intent))
-                }
-                is Event.AccountChosen -> {
-                    val accountName =
-                        event.result.data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
-                    val newModel = model.copy(accountName = accountName)
-                    Change(newModel, Effect.Toast("Account chosen: $accountName"))
-                }
-                is Event.QueryChanged ->
-                    Change(
-                        model.copy(query = event.value),
-                        Effect.Log(
-                            tag = javaClass.simpleName,
-                            text = "You're looking for ${event.value}"
-                        )
-                    )
-                is Event.QuerySent ->
-                    Change(
-                        model,
-                        Effect.Toast("Query sent: ${model.query}"),
-                        Effect.Search(model.query)
-                    )
-                is Event.ResultReceived -> {
-                    val result = event.result
-                    val items = result?.items ?: emptyList()
-                    Change(
-                        model,
-                        Effect.Toast("Received ${items.size} results"),
-                        Effect.Log(tag = javaClass.simpleName, text = "Received result: $result")
-                    )
-                }
-                Event.LifecycleDestroyed -> {
-                    val jsonStr = modelToJsonStr(model)
-                    val savePrefEffect = Effect.SavePref(javaClass.name, jsonStr)
-                    Change(model, savePrefEffect)
-                }
+                Event.LifecycleCreated -> loadPref(model)
+                is Event.StrPrefLoaded -> Change(modelFromJsonStr(event.value))
+                Event.LoginRequested -> Change(model, Effect.ChooseAccount)
+                is Event.AccountChosen -> updateAccount(model, event)
+                is Event.QueryChanged -> updateQuery(model, event)
+                Event.QuerySent -> search(model)
+                is Event.ResultReceived -> updateResults(model, event)
+                Event.LifecycleDestroyed -> savePref(model)
             }
         } catch (t: Throwable) {
-            Change(
-                model,
-                Effect.Toast("Failure handling event $event: $t"),
-                Effect.Log(
-                    tag = javaClass.simpleName,
-                    text = "Failure handling event $event",
-                    throwable = t
-                )
-            )
+            fail(model, event, t)
         }
+
+    private fun fail(
+        model: Model,
+        event: Event,
+        t: Throwable
+    ) = Change(
+        model,
+        Effect.Toast("Failure handling event $event: $t"),
+        Effect.Log(
+            tag = javaClass.simpleName,
+            text = "Failure handling event $event",
+            throwable = t
+        )
+    )
+
+    private fun savePref(model: Model): Change<Model> {
+        val jsonStr = modelToJsonStr(model)
+        val savePrefEffect = Effect.SavePref(javaClass.name, jsonStr)
+        return Change(model, savePrefEffect)
+    }
+
+    private fun updateResults(
+        model: Model,
+        event: Event.ResultReceived
+    ): Change<Model> {
+        val result = event.result
+        val items = result?.items ?: emptyList()
+        return Change(
+            model,
+            Effect.Toast("Received ${items.size} results"),
+            Effect.Log(tag = javaClass.simpleName, text = "Received result: $result")
+        )
+    }
+
+    private fun search(model: Model) = Change(
+        model,
+        Effect.Toast("Query sent: ${model.query}"),
+        Effect.Search(model.query)
+    )
+
+    private fun updateQuery(
+        model: Model,
+        event: Event.QueryChanged
+    ) = Change(
+        model.copy(query = event.value),
+        Effect.Log(
+            tag = javaClass.simpleName,
+            text = "You're looking for ${event.value}"
+        )
+    )
+
+    private fun loadPref(model: Model) =
+        Change(model, Effect.LoadPref(Main.javaClass.name, null))
+
+    private fun updateAccount(
+        model: Model,
+        event: Event.AccountChosen
+    ): Change<Model> {
+        val accountName =
+            event.result.data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
+        val newModel = model.copy(accountName = accountName)
+        return Change(
+            newModel,
+            Effect.Toast("Account chosen: $accountName"),
+            Effect.HandleAccountName(accountName)
+        )
+    }
 
     private fun modelToJsonStr(model: Model): String =
         JSONObject().apply {
