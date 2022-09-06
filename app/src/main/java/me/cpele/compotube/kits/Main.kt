@@ -110,7 +110,7 @@ object Main {
     }
 
     sealed class Event {
-        object Init : Event()
+        object LifecycleCreated : Event()
         object LoginRequested : Event()
         data class AppContextReceived(val appContext: Context) : Event()
         data class AccountChosen(val result: ActivityResult) : Event()
@@ -118,13 +118,13 @@ object Main {
         data class StrPrefLoaded(val value: String?) : Event()
         object QuerySent : Event()
         data class ResultReceived(val result: SearchListResponse?) : Event()
-        object Dispose : Event()
+        object LifecycleDestroyed : Event()
     }
 
     fun update(model: Model, event: Event): Change<Model> =
         try {
             when (event) {
-                is Event.Init ->
+                is Event.LifecycleCreated ->
                     Change(model, Effect.LoadPref(Main.javaClass.name, null))
                 is Event.StrPrefLoaded ->
                     Change(modelFromJsonStr(event.value))
@@ -169,7 +169,7 @@ object Main {
                         Effect.Log(tag = javaClass.simpleName, text = "Received result: $result")
                     )
                 }
-                Event.Dispose -> {
+                Event.LifecycleDestroyed -> {
                     val jsonStr = modelToJsonStr(model)
                     val savePrefEffect = Effect.SavePref(javaClass.name, jsonStr)
                     Change(model, savePrefEffect)

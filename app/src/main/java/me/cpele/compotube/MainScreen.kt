@@ -57,7 +57,7 @@ fun MainScreen() {
         lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onCreate(owner: LifecycleOwner) {
                 super.onCreate(owner)
-                eventFlow.value = Main.Event.Init
+                eventFlow.value = Main.Event.LifecycleCreated
             }
 
             override fun onDestroy(owner: LifecycleOwner) {
@@ -66,7 +66,7 @@ fun MainScreen() {
                 handleEvent(
                     context,
                     model,
-                    Main.Event.Dispose,
+                    Main.Event.LifecycleDestroyed,
                     youTube,
                     onNewModel = {}, // Won't change the model
                     launchIntent = {}, // Won't launch intent
