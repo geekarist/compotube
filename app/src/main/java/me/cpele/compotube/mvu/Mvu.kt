@@ -13,7 +13,7 @@ sealed class Effect {
     data class SavePref(val name: String, val value: String) : Effect()
 
     object ChooseAccount : Effect()
-    data class HandleAccountName(val accountName: String?) : Effect()
+    data class SelectAccount(val accountName: String?) : Effect()
 
     data class Search(val query: String) : Effect()
 }

@@ -142,7 +142,7 @@ private fun execute(
             value = effect.value
         )
         Effect.ChooseAccount -> chooseAccount(credential, launch)
-        is Effect.HandleAccountName -> handleAccountName(credential, effect.accountName)
+        is Effect.SelectAccount -> handleAccountName(credential, effect.accountName)
     }
 }
 

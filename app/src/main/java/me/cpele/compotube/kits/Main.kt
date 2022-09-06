@@ -195,7 +195,7 @@ object Main {
         return Change(
             newModel,
             Effect.Toast("Account chosen: $accountName"),
-            Effect.HandleAccountName(accountName)
+            Effect.SelectAccount(accountName)
         )
     }
 
