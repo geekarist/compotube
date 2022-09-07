@@ -62,13 +62,12 @@ fun Runtime() {
         val transport = NetHttpTransport()
         val jacksonFactory = JacksonFactory()
         val youTube = YouTube.Builder(transport, jacksonFactory, credential).build()
-        val coroutineScope = runtimeCoroutineScope
 
         object : Platform {
             override val context = context.applicationContext
             override val credential = credential
             override val youTube = youTube
-            override val coroutineScope = coroutineScope
+            override val coroutineScope = runtimeCoroutineScope
             override val launch: (Intent) -> Unit = { launcher.launch(it) }
             override val dispatch: (Main.Event) -> Unit = { eventFlow.value = it }
         }
