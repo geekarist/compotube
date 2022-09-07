@@ -28,8 +28,17 @@ import kotlinx.coroutines.flow.filterNotNull
 import me.cpele.compotube.kits.Main
 import me.cpele.compotube.mvu.Effect
 
+interface Platform {
+
+    val dispatch: (Main.Event) -> Unit
+    val launch: (Intent) -> Unit
+    val youTube: YouTube
+    val credential: GoogleAccountCredential
+    val context: Context
+}
+
 @Composable
-fun MainScreen() {
+fun Runtime() {
 
     val eventFlow = remember {
         MutableStateFlow<Main.Event?>(null)
@@ -41,15 +50,22 @@ fun MainScreen() {
     var model by rememberSaveable { mutableStateOf(Main.Model()) }
     val context = LocalContext.current.applicationContext
     val lifecycleOwner = LocalLifecycleOwner.current
-    val credential = remember {
+
+    val platform = remember {
         val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
         val backOff = ExponentialBackOff()
-        GoogleAccountCredential.usingOAuth2(context, scopes).setBackOff(backOff)
-    }
-    val youTube = remember {
+        val credential = GoogleAccountCredential.usingOAuth2(context, scopes).setBackOff(backOff)
         val transport = NetHttpTransport()
         val jacksonFactory = JacksonFactory()
-        YouTube.Builder(transport, jacksonFactory, credential).build()
+        val youTube = YouTube.Builder(transport, jacksonFactory, credential).build()
+
+        object : Platform {
+            override val context = context.applicationContext
+            override val credential = credential
+            override val youTube = youTube
+            override val launch: (Intent) -> Unit = { launcher.launch(it) }
+            override val dispatch: (Main.Event) -> Unit = { eventFlow.value = it }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -65,14 +81,10 @@ fun MainScreen() {
                 // The event must be handled immediately because on destroy,
                 // it won't be collected from the Flow
                 handleEvent(
-                    context,
+                    platform,
                     model,
-                    Main.Event.LifecycleDestroyed,
-                    credential,
-                    youTube,
-                    onNewModel = {}, // Won't change the model
-                    launchIntent = {}, // Won't launch intent
-                    dispatch = {} // Won't dispatch
+                    onNewModel = {}, // Ignore new models after destroy
+                    Main.Event.LifecycleDestroyed
                 )
                 super.onDestroy(owner)
             }
@@ -81,72 +93,70 @@ fun MainScreen() {
         // Start collecting events
         eventFlow.filterNotNull().collect { event ->
             handleEvent(
-                context, model, event, credential, youTube,
-                onNewModel = { newModel: Main.Model -> model = newModel },
-                launchIntent = { launcher.launch(it) },
-                dispatch = { eventFlow.value = it }
+                platform = platform,
+                model = model,
+                onNewModel = { model = it },
+                event = event
             )
         }
     }
 
-    Main.View(model = model, dispatch = { event ->
-        eventFlow.value = event
-    })
+    Main.View(model = model, dispatch = platform.dispatch)
 }
 
 private fun handleEvent(
-    context: Context,
+    platform: Platform,
     model: Main.Model,
-    event: Main.Event,
-    credential: GoogleAccountCredential,
-    youTube: YouTube,
     onNewModel: (Main.Model) -> Unit,
-    launchIntent: (Intent) -> Unit,
-    dispatch: (Main.Event) -> Unit
+    event: Main.Event
 ) {
-    val change = Main.update(model, event)
+    val change = Main.update(
+        model,
+        event
+    )
     onNewModel(change.model)
     change.effects.forEach { effect ->
-        execute(
-            context,
-            effect,
-            credential,
-            youTube,
-            launch = launchIntent,
-            dispatch = dispatch
-        )
+        execute(effect, platform)
     }
 }
 
 private fun execute(
-    context: Context,
     effect: Effect,
-    credential: GoogleAccountCredential,
-    youTube: YouTube,
-    launch: (Intent) -> Unit,
-    dispatch: (Main.Event) -> Unit
+    platform: Platform
 ) {
     when (effect) {
+        is Effect.Toast -> toast(
+            platform.context,
+            effect.text
+        )
+        is Effect.Log -> log(effect.tag, effect.text, effect.throwable)
         is Effect.LoadPref -> loadStrPref(
-            context = context,
+            context = platform.context,
             name = effect.name,
             defValue = effect.defValue,
-            onPrefLoaded = { dispatch(Main.Event.StrPrefLoaded(it)) }
+            onPrefLoaded = {
+                platform.dispatch
+                (Main.Event.StrPrefLoaded(it))
+            }
         )
-        is Effect.Toast -> toast(context, effect.text)
-        is Effect.Log -> log(effect.tag, effect.text, effect.throwable)
-        is Effect.Search -> search(youTube, effect.query, dispatch)
         is Effect.SavePref -> saveStrPref(
-            context = context,
+            context = platform.context,
             name = effect.name,
             value = effect.value
         )
-        Effect.ChooseAccount -> chooseAccount(credential, launch)
-        is Effect.SelectAccount -> handleAccountName(credential, effect.accountName)
+        Effect.ChooseAccount -> chooseAccount(
+            platform.credential,
+            platform.launch
+        )
+        is Effect.SelectAccount -> selectAccount(platform.credential, effect.accountName)
+        is Effect.Search -> search(
+            platform.youTube,
+            effect.query, platform.dispatch
+        )
     }
 }
 
-fun handleAccountName(credential: GoogleAccountCredential, accountName: String?) {
+fun selectAccount(credential: GoogleAccountCredential, accountName: String?) {
     credential.selectedAccountName = accountName
 }
 

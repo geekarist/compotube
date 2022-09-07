@@ -107,10 +107,10 @@ object Main {
 
     sealed class Event {
         object LifecycleCreated : Event()
+        data class StrPrefLoaded(val value: String?) : Event()
         object LoginRequested : Event()
         data class AccountChosen(val result: ActivityResult) : Event()
         data class QueryChanged(val value: String) : Event()
-        data class StrPrefLoaded(val value: String?) : Event()
         object QuerySent : Event()
         data class ResultReceived(val result: SearchListResponse?) : Event()
         object LifecycleDestroyed : Event()
