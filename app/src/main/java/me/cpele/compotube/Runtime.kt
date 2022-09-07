@@ -6,7 +6,7 @@ package me.cpele.compotube
 // See https://stackoverflow.com/a/63877349
 import android.content.Context
 import android.content.Intent
-import android.preference.PreferenceManager
+import android.content.SharedPreferences
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -171,7 +171,7 @@ fun search(youTube: YouTube, query: String, dispatch: (Main.Event) -> Unit) {
 }
 
 fun saveStrPref(context: Context, name: String, value: String) {
-    val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+    val prefs = getDefaultSharedPrefs(context)
     prefs.edit().putString(name, value).apply()
 }
 
@@ -181,9 +181,15 @@ fun loadStrPref(
     defValue: String?,
     onPrefLoaded: (String?) -> Unit
 ) {
-    val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+    val prefs = getDefaultSharedPrefs(context)
     val value = prefs.getString(name, defValue)
     onPrefLoaded(value)
+}
+
+private fun getDefaultSharedPrefs(context: Context): SharedPreferences {
+    val name = context.packageName + "_preferences"
+    val mode = Context.MODE_PRIVATE
+    return context.getSharedPreferences(name, mode)
 }
 
 private fun log(tag: String, text: String, throwable: Throwable?) {

@@ -218,7 +218,7 @@ object Main {
             )
         } ?: Model()
 
-    private fun getStringOrNull(jsonObj: JSONObject, name: String) =
+    private fun getStringOrNull(jsonObj: JSONObject, @Suppress("SameParameterValue") name: String) =
         if (jsonObj.isNull(name)) {
             null
         } else {
