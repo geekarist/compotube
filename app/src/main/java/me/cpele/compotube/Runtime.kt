@@ -23,8 +23,12 @@ import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.ExponentialBackOff
 import com.google.api.services.youtube.YouTube
 import com.google.api.services.youtube.YouTubeScopes
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.cpele.compotube.kits.Main
 import me.cpele.compotube.mvu.Effect
 
@@ -35,6 +39,7 @@ interface Platform {
     val youTube: YouTube
     val credential: GoogleAccountCredential
     val context: Context
+    val coroutineScope: CoroutineScope
 }
 
 @Composable
@@ -47,9 +52,8 @@ fun Runtime() {
     val launcher = rememberLauncherForActivityResult(contract = contract) { result ->
         eventFlow.value = Main.Event.AccountChosen(result)
     }
-    var model by rememberSaveable { mutableStateOf(Main.Model()) }
     val context = LocalContext.current.applicationContext
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val runtimeCoroutineScope = rememberCoroutineScope()
 
     val platform = remember {
         val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
@@ -58,15 +62,20 @@ fun Runtime() {
         val transport = NetHttpTransport()
         val jacksonFactory = JacksonFactory()
         val youTube = YouTube.Builder(transport, jacksonFactory, credential).build()
+        val coroutineScope = runtimeCoroutineScope
 
         object : Platform {
             override val context = context.applicationContext
             override val credential = credential
             override val youTube = youTube
+            override val coroutineScope = coroutineScope
             override val launch: (Intent) -> Unit = { launcher.launch(it) }
             override val dispatch: (Main.Event) -> Unit = { eventFlow.value = it }
         }
     }
+
+    var model by rememberSaveable { mutableStateOf(Main.Model()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(Unit) {
 
@@ -120,10 +129,8 @@ private fun handleEvent(
     }
 }
 
-private fun execute(
-    effect: Effect,
-    platform: Platform
-) {
+private fun execute(effect: Effect, platform: Platform) {
+
     when (effect) {
         is Effect.Toast -> toast(
             platform.context,
@@ -149,10 +156,12 @@ private fun execute(
             platform.launch
         )
         is Effect.SelectAccount -> selectAccount(platform.credential, effect.accountName)
-        is Effect.Search -> search(
-            platform.youTube,
-            effect.query, platform.dispatch
-        )
+        is Effect.Search -> platform.coroutineScope.launch {
+            search(
+                platform.youTube,
+                effect.query, platform.dispatch
+            )
+        }
     }
 }
 
@@ -165,9 +174,13 @@ fun chooseAccount(credential: GoogleAccountCredential, launch: (Intent) -> Unit)
     launch(intent)
 }
 
-fun search(youTube: YouTube, query: String, dispatch: (Main.Event) -> Unit) {
-    val result = youTube.search().list("TODO").setQ(query).execute()
-    dispatch(Main.Event.ResultReceived(result))
+suspend fun search(youTube: YouTube, query: String, dispatch: (Main.Event) -> Unit) {
+    val result = withContext(Dispatchers.IO) {
+        youTube.search().list("TODO").setQ(query).execute()
+    }
+    withContext(Dispatchers.Main) {
+        dispatch(Main.Event.ResultReceived(result))
+    }
 }
 
 fun saveStrPref(context: Context, name: String, value: String) {
