@@ -15,6 +15,7 @@ sealed class Effect {
     object ChooseAccount : Effect()
     data class SelectAccount(val accountName: String?) : Effect()
 
+    object CheckSearchRequirements : Effect()
     data class Search(val query: String) : Effect()
 }
 

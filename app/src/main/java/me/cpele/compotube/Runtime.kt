@@ -155,6 +155,7 @@ private fun execute(effect: Effect, platform: Platform) = try {
             platform.launch
         )
         is Effect.SelectAccount -> selectAccount(platform.credential, effect.accountName)
+        Effect.CheckSearchRequirements -> checkSearchRequirements()
         is Effect.Search -> platform.coroutineScope.launch {
             search(
                 platform.youTube,
@@ -164,6 +165,10 @@ private fun execute(effect: Effect, platform: Platform) = try {
     }
 } catch (t: Throwable) {
     Log.w("", "Error executing effect: $effect", t)
+}
+
+fun checkSearchRequirements() {
+    TODO("Not yet implemented")
 }
 
 fun selectAccount(credential: GoogleAccountCredential, accountName: String?) {

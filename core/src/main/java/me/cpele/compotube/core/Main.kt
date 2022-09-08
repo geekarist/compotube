@@ -134,13 +134,16 @@ object Main {
                 Event.LoginRequested -> Change(model, Effect.ChooseAccount)
                 is Event.AccountChosen -> updateAccount(model, event)
                 is Event.QueryChanged -> updateQuery(model, event)
-                Event.QuerySent -> search(model)
+                Event.QuerySent -> checkSearchRequirements(model)
                 is Event.ResponseReceived -> updateResults(model, event)
                 Event.LifecycleDestroyed -> savePref(model)
             }
         } catch (t: Throwable) {
             fail(model, event, t)
         }
+
+    private fun checkSearchRequirements(model: Model) =
+        Change(model, Effect.CheckSearchRequirements)
 
     private fun fail(
         model: Model,
