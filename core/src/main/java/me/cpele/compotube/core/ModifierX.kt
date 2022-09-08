@@ -1,4 +1,4 @@
-package me.cpele.compotube
+package me.cpele.compotube.core
 
 import android.util.Log
 import androidx.compose.foundation.focusable

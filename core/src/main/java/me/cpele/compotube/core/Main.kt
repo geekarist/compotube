@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package me.cpele.compotube.kits
+package me.cpele.compotube.core
 
 import android.accounts.AccountManager
 import android.os.Parcelable
@@ -24,10 +24,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import me.cpele.compotube.ModifierX.focusableWithArrowKeys
-import me.cpele.compotube.R
-import me.cpele.compotube.mvu.Change
-import me.cpele.compotube.mvu.Effect
+import me.cpele.compotube.core.ModifierX.focusableWithArrowKeys
 import org.json.JSONObject
 
 object Main {
@@ -41,6 +38,7 @@ object Main {
         val isLoggedIn: Boolean = accountName != null
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun View(model: Model, dispatch: (Event) -> Unit) {
         if (model.isLoggedIn.also { Log.d("", "Logged in? $it") }) {
@@ -230,11 +228,14 @@ object Main {
             )
         } ?: Model()
 
-    private fun getStringOrNull(jsonObj: JSONObject, @Suppress("SameParameterValue") name: String) =
-        if (jsonObj.isNull(name)) {
-            null
-        } else {
-            jsonObj.getString(name)
-        }
+    private fun getStringOrNull(
+        jsonObj: JSONObject,
+        @Suppress("SameParameterValue")
+        name: String
+    ) = if (jsonObj.isNull(name)) {
+        null
+    } else {
+        jsonObj.getString(name)
+    }
 }
 

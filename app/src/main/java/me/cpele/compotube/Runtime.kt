@@ -29,8 +29,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.cpele.compotube.kits.Main
-import me.cpele.compotube.mvu.Effect
+import me.cpele.compotube.core.Effect
+import me.cpele.compotube.core.Main
 
 interface Platform {
 

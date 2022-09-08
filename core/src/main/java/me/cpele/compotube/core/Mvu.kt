@@ -1,4 +1,4 @@
-package me.cpele.compotube.mvu
+package me.cpele.compotube.core
 
 class Change<M>(val model: M, vararg val effects: Effect) {
     override fun toString(): String =
