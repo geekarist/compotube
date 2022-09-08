@@ -174,11 +174,16 @@ fun chooseAccount(credential: GoogleAccountCredential, launch: (Intent) -> Unit)
 }
 
 suspend fun search(youTube: YouTube, query: String, dispatch: (Main.Event) -> Unit) {
-    val result = withContext(Dispatchers.IO) {
+    val response = withContext(Dispatchers.IO) {
         youTube.search().list("TODO").setQ(query).execute()
     }
+    val responseEvent = withContext(Dispatchers.Default) {
+        Main.Event.ResponseReceived.Response(response.map {
+            Main.Event.ResponseReceived.Result
+        })
+    }
     withContext(Dispatchers.Main) {
-        dispatch(Main.Event.ResultReceived(result))
+        dispatch(Main.Event.ResponseReceived(responseEvent))
     }
 }
 

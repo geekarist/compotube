@@ -18,4 +18,3 @@ sealed class Effect {
     data class Search(val query: String) : Effect()
 }
 
-

@@ -22,7 +22,6 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.google.api.services.youtube.model.SearchListResponse
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import me.cpele.compotube.ModifierX.focusableWithArrowKeys
@@ -106,13 +105,26 @@ object Main {
     }
 
     sealed class Event {
+
         object LifecycleCreated : Event()
+
         data class StrPrefLoaded(val value: String?) : Event()
+
         object LoginRequested : Event()
+
         data class AccountChosen(val result: ActivityResult) : Event()
+
         data class QueryChanged(val value: String) : Event()
+
         object QuerySent : Event()
-        data class ResultReceived(val result: SearchListResponse?) : Event()
+
+        data class ResponseReceived(val response: Response?) : Event() {
+            object Result
+            data class Response(
+                val items: List<Result>
+            )
+        }
+
         object LifecycleDestroyed : Event()
     }
 
@@ -125,7 +137,7 @@ object Main {
                 is Event.AccountChosen -> updateAccount(model, event)
                 is Event.QueryChanged -> updateQuery(model, event)
                 Event.QuerySent -> search(model)
-                is Event.ResultReceived -> updateResults(model, event)
+                is Event.ResponseReceived -> updateResults(model, event)
                 Event.LifecycleDestroyed -> savePref(model)
             }
         } catch (t: Throwable) {
@@ -154,9 +166,9 @@ object Main {
 
     private fun updateResults(
         model: Model,
-        event: Event.ResultReceived
+        event: Event.ResponseReceived
     ): Change<Model> {
-        val result = event.result
+        val result = event.response
         val items = result?.items ?: emptyList()
         return Change(
             model,
