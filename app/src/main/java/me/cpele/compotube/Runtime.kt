@@ -128,7 +128,7 @@ private fun handleEvent(
     }
 }
 
-private fun execute(effect: Effect, platform: Platform) {
+private fun execute(effect: Effect, platform: Platform) = try {
 
     when (effect) {
         is Effect.Toast -> toast(
@@ -162,6 +162,8 @@ private fun execute(effect: Effect, platform: Platform) {
             )
         }
     }
+} catch (t: Throwable) {
+    Log.w("", "Error executing effect: $effect", t)
 }
 
 fun selectAccount(credential: GoogleAccountCredential, accountName: String?) {
@@ -175,7 +177,7 @@ fun chooseAccount(credential: GoogleAccountCredential, launch: (Intent) -> Unit)
 
 suspend fun search(youTube: YouTube, query: String, dispatch: (Main.Event) -> Unit) {
     val response = withContext(Dispatchers.IO) {
-        youTube.search().list("TODO").setQ(query).execute()
+        youTube.search().list("snippet").setQ(query).execute()
     }
     val responseEvent = withContext(Dispatchers.Default) {
         Main.Event.ResponseReceived.Response(response.map {
