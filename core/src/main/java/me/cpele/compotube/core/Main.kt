@@ -130,22 +130,26 @@ object Main {
         object LifecycleDestroyed : Event()
     }
 
-    fun update(model: Model, event: Event): Change<Model> =
-        try {
-            when (event) {
-                Event.LifecycleCreated -> loadPref(model)
-                is Event.StrPrefLoaded -> Change(modelFromJsonStr(event.value))
-                Event.LoginRequested -> Change(model, Effect.ChooseAccount)
-                is Event.AccountChosen -> updateAccount(model, event)
-                is Event.QueryChanged -> updateQuery(model, event)
-                Event.QuerySent -> checkPermission(model)
-                is Event.PermissionChecked -> requestPermissionOrSearch(event, model)
-                is Event.ResponseReceived -> updateResults(model, event)
-                Event.LifecycleDestroyed -> savePref(model)
-            }
-        } catch (t: Throwable) {
-            fail(model, event, t)
-        }
+    fun update(model: Model, event: Event): Change<Model> = when (event) {
+        is Event.LifecycleCreated -> loadPref(model)
+        is Event.StrPrefLoaded -> deserializePref(event)
+        is Event.LoginRequested -> chooseAccount(model)
+        is Event.AccountChosen -> updateAccount(model, event)
+        is Event.QueryChanged -> updateQuery(model, event)
+        is Event.QuerySent -> checkPermission(model)
+        is Event.PermissionChecked -> requestPermissionOrSearch(event, model)
+        is Event.ResponseReceived -> updateResults(model, event)
+        is Event.LifecycleDestroyed -> savePref(model)
+    }
+
+    private fun chooseAccount(model: Model) =
+        Change(model, Effect.ChooseAccount)
+
+    private fun deserializePref(event: Event.StrPrefLoaded) =
+        Change(modelFromJsonStr(event.value))
+
+    private fun loadPref(model: Model) =
+        Change(model, Effect.LoadPref(Main.javaClass.name, null))
 
     private fun requestPermissionOrSearch(
         event: Event.PermissionChecked,
@@ -162,20 +166,6 @@ object Main {
     private fun checkPermission(model: Model) = Change(
         model,
         Effect.CheckPermission(Manifest.permission.GET_ACCOUNTS)
-    )
-
-    private fun fail(
-        model: Model,
-        event: Event,
-        t: Throwable
-    ) = Change(
-        model,
-        Effect.Toast("Failure handling event $event: $t"),
-        Effect.Log(
-            tag = javaClass.simpleName,
-            text = "Failure handling event $event",
-            throwable = t
-        )
     )
 
     private fun savePref(model: Model): Change<Model> {
@@ -213,9 +203,6 @@ object Main {
             text = "You're looking for ${event.value}"
         )
     )
-
-    private fun loadPref(model: Model) =
-        Change(model, Effect.LoadPref(Main.javaClass.name, null))
 
     private fun updateAccount(
         model: Model,

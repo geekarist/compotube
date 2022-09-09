@@ -119,13 +119,19 @@ private fun handleEvent(
     onNewModel: (Main.Model) -> Unit,
     event: Main.Event
 ) {
-    val change = Main.update(
-        model,
-        event
-    )
-    onNewModel(change.model)
-    change.effects.forEach { effect ->
-        execute(effect, platform)
+    try {
+        val change = Main.update(model, event)
+        onNewModel(change.model)
+        change.effects.forEach { effect ->
+            execute(effect, platform)
+        }
+    } catch (t: Throwable) {
+        Toast.makeText(
+            platform.context,
+            "Failure handling event $event: $t",
+            Toast.LENGTH_SHORT
+        ).show()
+        Log.w("", "Failure handling event $event", t)
     }
 }
 
