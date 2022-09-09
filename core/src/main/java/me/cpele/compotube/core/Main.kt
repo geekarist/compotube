@@ -105,28 +105,19 @@ object Main {
     }
 
     sealed class Event {
-
         object LifecycleCreated : Event()
-
         data class StrPrefLoaded(val value: String?) : Event()
-
         object LoginRequested : Event()
-
         data class AccountChosen(val result: ActivityResult) : Event()
-
         data class QueryChanged(val value: String) : Event()
-
         object QuerySent : Event()
-
         data class ResponseReceived(val response: Response?) : Event() {
             object Result
             data class Response(
                 val items: List<Result>
             )
         }
-
         data class PermissionChecked(val checkResult: Int) : Event()
-
         object LifecycleDestroyed : Event()
     }
 
