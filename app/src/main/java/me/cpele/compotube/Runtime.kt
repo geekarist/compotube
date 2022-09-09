@@ -167,7 +167,7 @@ private fun execute(effect: Effect, platform: Platform) = try {
                 effect.query, platform.dispatch
             )
         }
-        is Effect.RequestPermission -> TODO()
+        is Effect.RequestPermission -> TODO("Implement request permission on $effect")
     }
 } catch (t: Throwable) {
     Log.w("", "Error executing effect: $effect", t)
