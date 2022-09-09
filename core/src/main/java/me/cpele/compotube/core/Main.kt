@@ -146,7 +146,7 @@ object Main {
         Change(model, Effect.ChooseAccount)
 
     private fun deserializePref(event: Event.StrPrefLoaded) =
-        Change(modelFromJsonStr(event.value))
+        Change(deserialize(event.value))
 
     private fun loadPref(model: Model) =
         Change(model, Effect.LoadPref(Main.javaClass.name, null))
@@ -169,7 +169,7 @@ object Main {
     )
 
     private fun savePref(model: Model): Change<Model> {
-        val jsonStr = modelToJsonStr(model)
+        val jsonStr = serialize(model)
         val savePrefEffect = Effect.SavePref(javaClass.name, jsonStr)
         return Change(model, savePrefEffect)
     }
@@ -218,13 +218,13 @@ object Main {
         )
     }
 
-    private fun modelToJsonStr(model: Model): String =
+    private fun serialize(model: Model) =
         JSONObject().apply {
             put("accountName", model.accountName)
             put("query", model.query)
         }.toString()
 
-    private fun modelFromJsonStr(value: String?): Model =
+    private fun deserialize(value: String?) =
         value?.let {
             val jsonObj = try {
                 JSONObject(value)
