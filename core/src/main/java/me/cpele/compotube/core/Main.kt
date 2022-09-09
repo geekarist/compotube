@@ -2,7 +2,9 @@
 
 package me.cpele.compotube.core
 
+import android.Manifest
 import android.accounts.AccountManager
+import android.content.pm.PackageManager
 import android.os.Parcelable
 import android.util.Log
 import android.view.KeyEvent
@@ -123,6 +125,8 @@ object Main {
             )
         }
 
+        data class PermissionChecked(val checkResult: Int) : Event()
+
         object LifecycleDestroyed : Event()
     }
 
@@ -134,7 +138,8 @@ object Main {
                 Event.LoginRequested -> Change(model, Effect.ChooseAccount)
                 is Event.AccountChosen -> updateAccount(model, event)
                 is Event.QueryChanged -> updateQuery(model, event)
-                Event.QuerySent -> checkSearchRequirements(model)
+                Event.QuerySent -> checkPermission(model)
+                is Event.PermissionChecked -> requestPermissionOrSearch(event, model)
                 is Event.ResponseReceived -> updateResults(model, event)
                 Event.LifecycleDestroyed -> savePref(model)
             }
@@ -142,8 +147,22 @@ object Main {
             fail(model, event, t)
         }
 
-    private fun checkSearchRequirements(model: Model) =
-        Change(model, Effect.CheckSearchRequirements)
+    private fun requestPermissionOrSearch(
+        event: Event.PermissionChecked,
+        model: Model
+    ) = when (event.checkResult) {
+        PackageManager.PERMISSION_GRANTED ->
+            search(model)
+        PackageManager.PERMISSION_DENIED ->
+            Change(model, Effect.RequestPermission(Manifest.permission.GET_ACCOUNTS))
+        else ->
+            throw IllegalStateException("Unknown permission check result: ${event.checkResult}")
+    }
+
+    private fun checkPermission(model: Model) = Change(
+        model,
+        Effect.CheckPermission(Manifest.permission.GET_ACCOUNTS)
+    )
 
     private fun fail(
         model: Model,

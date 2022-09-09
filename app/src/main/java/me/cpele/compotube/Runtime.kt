@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
@@ -155,20 +156,27 @@ private fun execute(effect: Effect, platform: Platform) = try {
             platform.launch
         )
         is Effect.SelectAccount -> selectAccount(platform.credential, effect.accountName)
-        Effect.CheckSearchRequirements -> checkSearchRequirements()
+        is Effect.CheckPermission -> checkPermission(
+            platform.context,
+            effect.permission,
+            platform.dispatch
+        )
         is Effect.Search -> platform.coroutineScope.launch {
             search(
                 platform.youTube,
                 effect.query, platform.dispatch
             )
         }
+        is Effect.RequestPermission -> TODO()
     }
 } catch (t: Throwable) {
     Log.w("", "Error executing effect: $effect", t)
 }
 
-fun checkSearchRequirements() {
-    TODO("Not yet implemented")
+fun checkPermission(context: Context, permission: String, dispatch: (Main.Event) -> Unit) {
+    val applicationContext = context.applicationContext
+    val checkResult = ContextCompat.checkSelfPermission(applicationContext, permission)
+    return dispatch(Main.Event.PermissionChecked(checkResult))
 }
 
 fun selectAccount(credential: GoogleAccountCredential, accountName: String?) {
