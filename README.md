@@ -15,4 +15,4 @@ TODO
 
 - [ ] Search videos on YouTube
 - [ ] Only display videos that were made for kids
-- [ ] Only display video that were approved by parents
+- [ ] Only display videos that were approved by parents
