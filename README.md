@@ -1,7 +1,7 @@
 # Compotube
 
 Compotube is a safe application for kids to watch YouTube videos. It runs on Android and is
-developed using Jetpack ~~Compote~~ Compose.
+developed using Jetpack ~~Compote~~ Compose. 
 
 ## Features
 
