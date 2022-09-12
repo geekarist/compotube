@@ -122,64 +122,38 @@ object Main {
     }
 
     fun update(model: Model, event: Event): Change<Model> = when (event) {
-        is Event.LifecycleCreated -> loadPref(model)
-        is Event.StrPrefLoaded -> deserializePref(event)
-        is Event.LoginRequested -> chooseAccount(model)
+        is Event.LifecycleCreated -> Change(Effect.LoadPref(Main.javaClass.name, null))
+        is Event.StrPrefLoaded -> Change(deserialize(event.value))
+        is Event.LoginRequested -> Change(Effect.ChooseAccount)
         is Event.AccountChosen -> updateAccount(model, event)
         is Event.QueryChanged -> updateQuery(model, event)
-        is Event.QuerySent -> checkPermission(model)
-        is Event.PermissionChecked -> requestPermissionOrSearch(event, model)
-        is Event.ResponseReceived -> updateResults(model, event)
-        is Event.LifecycleDestroyed -> savePref(model)
+        is Event.QuerySent -> Change(Effect.CheckPermission(Manifest.permission.GET_ACCOUNTS))
+        is Event.PermissionChecked -> requestPermissionOrSearch(model, event)
+        is Event.ResponseReceived -> updateResults(event)
+        is Event.LifecycleDestroyed -> Change(Effect.SavePref(javaClass.name, serialize(model)))
     }
 
-    private fun chooseAccount(model: Model) =
-        Change(model, Effect.ChooseAccount)
-
-    private fun deserializePref(event: Event.StrPrefLoaded) =
-        Change(deserialize(event.value))
-
-    private fun loadPref(model: Model) =
-        Change(model, Effect.LoadPref(Main.javaClass.name, null))
-
     private fun requestPermissionOrSearch(
-        event: Event.PermissionChecked,
-        model: Model
+        model: Model,
+        event: Event.PermissionChecked
     ) = when (event.checkResult) {
-        PackageManager.PERMISSION_GRANTED ->
-            search(model)
+        PackageManager.PERMISSION_GRANTED -> search(model)
         PackageManager.PERMISSION_DENIED ->
-            Change(model, Effect.RequestPermission(Manifest.permission.GET_ACCOUNTS))
+            Change(Effect.RequestPermission(Manifest.permission.GET_ACCOUNTS))
         else ->
             throw IllegalStateException("Unknown permission check result: ${event.checkResult}")
     }
 
-    private fun checkPermission(model: Model) = Change(
-        model,
-        Effect.CheckPermission(Manifest.permission.GET_ACCOUNTS)
-    )
-
-    private fun savePref(model: Model): Change<Model> {
-        val jsonStr = serialize(model)
-        val savePrefEffect = Effect.SavePref(javaClass.name, jsonStr)
-        return Change(model, savePrefEffect)
-    }
-
-    private fun updateResults(
-        model: Model,
-        event: Event.ResponseReceived
-    ): Change<Model> {
+    private fun updateResults(event: Event.ResponseReceived): Change<Model> {
         val result = event.response
         val items = result?.items ?: emptyList()
         return Change(
-            model,
             Effect.Toast("Received ${items.size} results"),
             Effect.Log(tag = javaClass.simpleName, text = "Received result: $result")
         )
     }
 
-    private fun search(model: Model) = Change(
-        model,
+    private fun search(model: Model) = Change<Model>(
         Effect.Toast("Query sent: ${model.query}"),
         Effect.Search(model.query)
     )

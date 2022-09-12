@@ -121,9 +121,8 @@ private fun handleEvent(
 ) {
     try {
         val change = Main.update(model, event)
-        onNewModel(change.model)
         change.effects.forEach { effect ->
-            execute(effect, platform)
+            execute(effect, platform, onNewModel)
         }
     } catch (t: Throwable) {
         Toast.makeText(
@@ -135,9 +134,16 @@ private fun handleEvent(
     }
 }
 
-private fun execute(effect: Effect, platform: Platform) = try {
-
+private fun execute(effect: Effect, platform: Platform, onNewModel: (Main.Model) -> Unit) = try {
     when (effect) {
+        is Effect.Modify<*> -> {
+            val newModel = effect.newModel
+            if (newModel is Main.Model) {
+                onNewModel(newModel)
+            } else {
+                throw IllegalArgumentException("Invalid effect: must have a model of type ${Main.Model::class.simpleName}")
+            }
+        }
         is Effect.Toast -> toast(
             platform.context,
             effect.text

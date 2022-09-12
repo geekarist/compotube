@@ -1,8 +1,15 @@
 package me.cpele.compotube.core
 
-class Change<M>(val model: M, vararg val effects: Effect) {
-    override fun toString(): String =
-        "Change(model=$model, effects=${effects.contentToString()})"
+class Change<M>(val effects: List<Effect>) {
+
+    constructor(
+        newModel: M,
+        vararg effects: Effect
+    ) : this(newModel.let {
+        listOf(Effect.Modify(it)) + effects.asList<Effect>()
+    })
+
+    constructor(vararg effects: Effect) : this(effects.asList())
 }
 
 sealed class Effect {
@@ -15,5 +22,6 @@ sealed class Effect {
     object ChooseAccount : Effect()
     data class SelectAccount(val accountName: String?) : Effect()
     data class Search(val query: String) : Effect()
+    data class Modify<M>(val newModel: M) : Effect()
 }
 
