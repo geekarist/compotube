@@ -43,62 +43,76 @@ object Main {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun View(model: Model, dispatch: (Event) -> Unit) {
-        if (model.isLoggedIn.also { Log.d("", "Logged in? $it") }) {
-            Log.d("", "Account name: ${model.accountName}")
-            Column(modifier = Modifier.focusable(false)) {
-                Box(
-                    Modifier
-                        .wrapContentHeight()
-                        .padding(16.dp)
+        if (model.isLoggedIn) {
+            Finder(model, dispatch)
+        } else {
+            AccountChooser(dispatch)
+        }
+    }
+
+    @Composable
+    @OptIn(ExperimentalMaterial3Api::class)
+    private fun Finder(
+        model: Model,
+        dispatch: (Event) -> Unit
+    ) {
+        Log.d("", "Account name: ${model.accountName}")
+        Column(modifier = Modifier.focusable(false)) {
+            Box(
+                Modifier
+                    .wrapContentHeight()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        TextField(
-                            modifier = Modifier
-                                .weight(weight = 1f, fill = true)
-                                .focusableWithArrowKeys()
-                                .onKeyEvent { event ->
-                                    if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
-                                        dispatch(Event.QuerySent)
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                },
-                            singleLine = true,
-                            value = model.query,
-                            placeholder = { Text("Search Compotube") },
-                            onValueChange = { value ->
-                                dispatch(Event.QueryChanged(value))
+                    TextField(
+                        modifier = Modifier
+                            .weight(weight = 1f, fill = true)
+                            .focusableWithArrowKeys()
+                            .onKeyEvent { event ->
+                                if (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER) {
+                                    dispatch(Event.QuerySent)
+                                    true
+                                } else {
+                                    false
+                                }
                             },
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(onSearch = {
-                                dispatch(Event.QuerySent)
-                            })
-                        )
-                        val accountName = model.accountName
-                            ?: throw IllegalStateException("Missing account name")
-                        Text(
-                            modifier = Modifier.wrapContentWidth(),
-                            text = accountName
-                        )
-                    }
+                        singleLine = true,
+                        value = model.query,
+                        placeholder = { Text("Search Compotube") },
+                        onValueChange = { value ->
+                            dispatch(Event.QueryChanged(value))
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = {
+                            dispatch(Event.QuerySent)
+                        })
+                    )
+                    val accountName = model.accountName
+                        ?: throw IllegalStateException("Missing account name")
+                    Text(
+                        modifier = Modifier.wrapContentWidth(),
+                        text = accountName
+                    )
                 }
             }
-        } else {
-            Box {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val appName = stringResource(id = R.string.app_name)
-                    Text(text = "To use $appName you need to be logged in")
-                    Button(onClick = { dispatch(Event.LoginRequested) }) {
-                        Text("Login")
-                    }
+        }
+    }
+
+    @Composable
+    private fun AccountChooser(dispatch: (Event) -> Unit) {
+        Box {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val appName = stringResource(id = R.string.app_name)
+                Text(text = "To use $appName you need to be logged in")
+                Button(onClick = { dispatch(Event.LoginRequested) }) {
+                    Text("Login")
                 }
             }
         }
