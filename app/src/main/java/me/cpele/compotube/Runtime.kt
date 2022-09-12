@@ -49,10 +49,12 @@ fun Runtime() {
     val eventFlow = remember {
         MutableStateFlow<Main.Event?>(null)
     }
-    val contract = ActivityResultContracts.StartActivityForResult()
-    val launcher = rememberLauncherForActivityResult(contract = contract) { result ->
-        eventFlow.value = Main.Event.AccountChosen(result)
-    }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = { result ->
+            eventFlow.value = Main.Event.AccountChosen(result)
+        }
+    )
     val context = LocalContext.current.applicationContext
     val runtimeCoroutineScope = rememberCoroutineScope()
 
