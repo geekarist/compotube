@@ -34,7 +34,6 @@ import me.cpele.compotube.core.Effect
 import me.cpele.compotube.core.Main
 
 interface RuntimeState {
-
     val dispatch: (Main.Event) -> Unit
     val launch: (Intent) -> Unit
     val youTube: YouTube
@@ -57,9 +56,7 @@ fun Runtime() {
             onCreate = Main.Event.LifecycleCreated,
             onDestroy = Main.Event.LifecycleDestroyed
         )
-        collectEvents(
-            runtimeState = runtimeState
-        )
+        collectEvents(runtimeState = runtimeState)
     }
 
     Main.View(model = runtimeState.model, dispatch = runtimeState.dispatch)
@@ -109,7 +106,7 @@ fun rememberRuntimeState(): RuntimeState {
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
         onResult = { result ->
-            eventFlow.value = Main.Event.AccountChosen(result)
+            eventFlow.value = Main.Event.ActivityResultReceived(result)
         }
     )
     val lifecycleOwner = LocalLifecycleOwner.current

@@ -122,7 +122,7 @@ object Main {
         object LifecycleCreated : Event()
         data class StrPrefLoaded(val value: String?) : Event()
         object LoginRequested : Event()
-        data class AccountChosen(val result: ActivityResult) : Event()
+        data class ActivityResultReceived(val result: ActivityResult) : Event()
         data class QueryChanged(val value: String) : Event()
         object QuerySent : Event()
         data class ResponseReceived(val response: Response?) : Event() {
@@ -139,7 +139,7 @@ object Main {
         is Event.LifecycleCreated -> Change(Effect.LoadPref(Main.javaClass.name, null))
         is Event.StrPrefLoaded -> Change(deserialize(event.value))
         is Event.LoginRequested -> Change(Effect.ChooseAccount)
-        is Event.AccountChosen -> updateAccount(model, event)
+        is Event.ActivityResultReceived -> updateAccount(model, event)
         is Event.QueryChanged -> updateQuery(model, event)
         is Event.QuerySent -> Change(Effect.CheckPermission(Manifest.permission.GET_ACCOUNTS))
         is Event.PermissionChecked -> requestPermissionOrSearch(model, event)
@@ -185,7 +185,7 @@ object Main {
 
     private fun updateAccount(
         model: Model,
-        event: Event.AccountChosen
+        event: Event.ActivityResultReceived
     ): Change<Model> {
         val accountName =
             event.result.data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
