@@ -10,7 +10,6 @@ import android.content.SharedPreferences
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,61 +42,47 @@ interface RuntimeState {
     val context: Context
     val coroutineScope: CoroutineScope
     val lifecycleOwner: LifecycleOwner
+    val eventFlow: MutableStateFlow<Main.Event?>
+    var model: Main.Model
 }
 
 @Composable
 fun Runtime() {
 
-    val context = LocalContext.current.applicationContext
-    val runtimeCoroutineScope = rememberCoroutineScope()
-
-    val eventFlow = remember {
-        MutableStateFlow<Main.Event?>(null)
-    }
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-        onResult = { result ->
-            eventFlow.value = Main.Event.AccountChosen(result)
-        }
-    )
-
-    val runtimeState = rememberRuntimeState(
-        context,
-        runtimeCoroutineScope,
-        launcher,
-        eventFlow,
-        LocalLifecycleOwner.current
-    )
-
-    var model by rememberSaveable { mutableStateOf(Main.Model()) }
+    val runtimeState = rememberRuntimeState()
 
     LaunchedEffect(Unit) {
-
-        // Setup model init/dispose
         setUpLifecycle(
             runtimeState = runtimeState,
-            supplyModel = { model },
             onCreate = Main.Event.LifecycleCreated,
             onDestroy = Main.Event.LifecycleDestroyed
         )
-
-        // Start collecting events
-        eventFlow.filterNotNull().collect { event ->
-            handleEvent(
-                runtimeState = runtimeState,
-                model = model,
-                onNewModel = { model = it },
-                event = event
-            )
-        }
+        collectEvents(
+            runtimeState = runtimeState,
+            getModel = { runtimeState.model },
+            onNewModel = { runtimeState.model = it })
     }
 
-    Main.View(model = model, dispatch = runtimeState.dispatch)
+    Main.View(model = runtimeState.model, dispatch = runtimeState.dispatch)
+}
+
+suspend fun collectEvents(
+    runtimeState: RuntimeState,
+    getModel: () -> Main.Model,
+    onNewModel: (Main.Model) -> Unit
+) {
+    runtimeState.eventFlow.filterNotNull().collect { event ->
+        handleEvent(
+            runtimeState = runtimeState,
+            model = getModel(),
+            onNewModel = onNewModel,
+            event = event
+        )
+    }
 }
 
 fun setUpLifecycle(
     runtimeState: RuntimeState,
-    supplyModel: () -> Main.Model,
     onCreate: Main.Event,
     onDestroy: Main.Event
 ) {
@@ -112,7 +97,7 @@ fun setUpLifecycle(
             // it won't be collected from the Flow
             handleEvent(
                 runtimeState,
-                supplyModel(),
+                runtimeState.model,
                 onNewModel = {}, // Ignore new models after destroy
                 onDestroy
             )
@@ -122,28 +107,46 @@ fun setUpLifecycle(
 }
 
 @Composable
-fun rememberRuntimeState(
-    context: Context,
-    runtimeCoroutineScope: CoroutineScope,
-    launcher: ActivityResultLauncher<Intent>,
-    eventFlow: MutableStateFlow<Main.Event?>,
-    lifecycleOwner: LifecycleOwner
-): RuntimeState = remember {
-    val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
-    val backOff = ExponentialBackOff()
-    val credential = GoogleAccountCredential.usingOAuth2(context, scopes).setBackOff(backOff)
-    val transport = NetHttpTransport()
-    val jacksonFactory = JacksonFactory()
-    val youTube = YouTube.Builder(transport, jacksonFactory, credential).build()
+fun rememberRuntimeState(): RuntimeState {
+    val context = LocalContext.current.applicationContext
+    val runtimeCoroutineScope = rememberCoroutineScope()
 
-    object : RuntimeState {
-        override val context = context.applicationContext
-        override val credential = credential
-        override val youTube = youTube
-        override val coroutineScope = runtimeCoroutineScope
-        override val launch: (Intent) -> Unit = { launcher.launch(it) }
-        override val dispatch: (Main.Event) -> Unit = { eventFlow.value = it }
-        override val lifecycleOwner = lifecycleOwner
+    val eventFlow = remember {
+        MutableStateFlow<Main.Event?>(null)
+    }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = { result ->
+            eventFlow.value = Main.Event.AccountChosen(result)
+        }
+    )
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var model by rememberSaveable { mutableStateOf(Main.Model()) }
+
+    return remember {
+        val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
+        val backOff = ExponentialBackOff()
+        val credential = GoogleAccountCredential.usingOAuth2(context, scopes).setBackOff(backOff)
+        val transport = NetHttpTransport()
+        val jacksonFactory = JacksonFactory()
+        val youTube = YouTube.Builder(transport, jacksonFactory, credential).build()
+
+        object : RuntimeState {
+            override val context = context.applicationContext
+            override val eventFlow = eventFlow
+            override val credential = credential
+            override val youTube = youTube
+            override val coroutineScope = runtimeCoroutineScope
+            override val launch: (Intent) -> Unit = { launcher.launch(it) }
+            override val dispatch: (Main.Event) -> Unit = { eventFlow.value = it }
+            override val lifecycleOwner = lifecycleOwner
+            override var model: Main.Model
+                get() = model
+                set(value) {
+                    model = value
+                }
+        }
     }
 }
 
