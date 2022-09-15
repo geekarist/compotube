@@ -10,6 +10,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -33,7 +34,7 @@ import kotlinx.coroutines.withContext
 import me.cpele.compotube.core.Effect
 import me.cpele.compotube.core.Main
 
-interface Platform {
+interface RuntimeState {
 
     val dispatch: (Main.Event) -> Unit
     val launch: (Intent) -> Unit
@@ -41,10 +42,14 @@ interface Platform {
     val credential: GoogleAccountCredential
     val context: Context
     val coroutineScope: CoroutineScope
+    val lifecycleOwner: LifecycleOwner
 }
 
 @Composable
 fun Runtime() {
+
+    val context = LocalContext.current.applicationContext
+    val runtimeCoroutineScope = rememberCoroutineScope()
 
     val eventFlow = remember {
         MutableStateFlow<Main.Event?>(null)
@@ -55,56 +60,31 @@ fun Runtime() {
             eventFlow.value = Main.Event.AccountChosen(result)
         }
     )
-    val context = LocalContext.current.applicationContext
-    val runtimeCoroutineScope = rememberCoroutineScope()
 
-    val platform = remember {
-        val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
-        val backOff = ExponentialBackOff()
-        val credential = GoogleAccountCredential.usingOAuth2(context, scopes).setBackOff(backOff)
-        val transport = NetHttpTransport()
-        val jacksonFactory = JacksonFactory()
-        val youTube = YouTube.Builder(transport, jacksonFactory, credential).build()
-
-        object : Platform {
-            override val context = context.applicationContext
-            override val credential = credential
-            override val youTube = youTube
-            override val coroutineScope = runtimeCoroutineScope
-            override val launch: (Intent) -> Unit = { launcher.launch(it) }
-            override val dispatch: (Main.Event) -> Unit = { eventFlow.value = it }
-        }
-    }
+    val runtimeState = rememberRuntimeState(
+        context,
+        runtimeCoroutineScope,
+        launcher,
+        eventFlow,
+        LocalLifecycleOwner.current
+    )
 
     var model by rememberSaveable { mutableStateOf(Main.Model()) }
-    val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(Unit) {
 
         // Setup model init/dispose
-        lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onCreate(owner: LifecycleOwner) {
-                super.onCreate(owner)
-                eventFlow.value = Main.Event.LifecycleCreated
-            }
-
-            override fun onDestroy(owner: LifecycleOwner) {
-                // The event must be handled immediately because on destroy,
-                // it won't be collected from the Flow
-                handleEvent(
-                    platform,
-                    model,
-                    onNewModel = {}, // Ignore new models after destroy
-                    Main.Event.LifecycleDestroyed
-                )
-                super.onDestroy(owner)
-            }
-        })
+        setUpLifecycle(
+            runtimeState = runtimeState,
+            supplyModel = { model },
+            onCreate = Main.Event.LifecycleCreated,
+            onDestroy = Main.Event.LifecycleDestroyed
+        )
 
         // Start collecting events
         eventFlow.filterNotNull().collect { event ->
             handleEvent(
-                platform = platform,
+                runtimeState = runtimeState,
                 model = model,
                 onNewModel = { model = it },
                 event = event
@@ -112,11 +92,63 @@ fun Runtime() {
         }
     }
 
-    Main.View(model = model, dispatch = platform.dispatch)
+    Main.View(model = model, dispatch = runtimeState.dispatch)
+}
+
+fun setUpLifecycle(
+    runtimeState: RuntimeState,
+    supplyModel: () -> Main.Model,
+    onCreate: Main.Event,
+    onDestroy: Main.Event
+) {
+    runtimeState.lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
+        override fun onCreate(owner: LifecycleOwner) {
+            super.onCreate(owner)
+            runtimeState.dispatch(onCreate)
+        }
+
+        override fun onDestroy(owner: LifecycleOwner) {
+            // The event must be handled immediately because on destroy,
+            // it won't be collected from the Flow
+            handleEvent(
+                runtimeState,
+                supplyModel(),
+                onNewModel = {}, // Ignore new models after destroy
+                onDestroy
+            )
+            super.onDestroy(owner)
+        }
+    })
+}
+
+@Composable
+fun rememberRuntimeState(
+    context: Context,
+    runtimeCoroutineScope: CoroutineScope,
+    launcher: ActivityResultLauncher<Intent>,
+    eventFlow: MutableStateFlow<Main.Event?>,
+    lifecycleOwner: LifecycleOwner
+): RuntimeState = remember {
+    val scopes = listOf(YouTubeScopes.YOUTUBE_READONLY)
+    val backOff = ExponentialBackOff()
+    val credential = GoogleAccountCredential.usingOAuth2(context, scopes).setBackOff(backOff)
+    val transport = NetHttpTransport()
+    val jacksonFactory = JacksonFactory()
+    val youTube = YouTube.Builder(transport, jacksonFactory, credential).build()
+
+    object : RuntimeState {
+        override val context = context.applicationContext
+        override val credential = credential
+        override val youTube = youTube
+        override val coroutineScope = runtimeCoroutineScope
+        override val launch: (Intent) -> Unit = { launcher.launch(it) }
+        override val dispatch: (Main.Event) -> Unit = { eventFlow.value = it }
+        override val lifecycleOwner = lifecycleOwner
+    }
 }
 
 private fun handleEvent(
-    platform: Platform,
+    runtimeState: RuntimeState,
     model: Main.Model,
     onNewModel: (Main.Model) -> Unit,
     event: Main.Event
@@ -124,11 +156,11 @@ private fun handleEvent(
     try {
         val change = Main.update(model, event)
         change.effects.forEach { effect ->
-            execute(effect, platform, onNewModel)
+            execute(effect, runtimeState, onNewModel)
         }
     } catch (t: Throwable) {
         Toast.makeText(
-            platform.context,
+            runtimeState.context,
             "Failure handling event $event: $t",
             Toast.LENGTH_SHORT
         ).show()
@@ -136,7 +168,11 @@ private fun handleEvent(
     }
 }
 
-private fun execute(effect: Effect, platform: Platform, onNewModel: (Main.Model) -> Unit) = try {
+private fun execute(
+    effect: Effect,
+    platform: RuntimeState,
+    onNewModel: (Main.Model) -> Unit
+) = try {
     when (effect) {
         is Effect.Modify<*> -> {
             val newModel = effect.newModel
