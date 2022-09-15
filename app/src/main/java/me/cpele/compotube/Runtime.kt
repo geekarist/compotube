@@ -58,24 +58,17 @@ fun Runtime() {
             onDestroy = Main.Event.LifecycleDestroyed
         )
         collectEvents(
-            runtimeState = runtimeState,
-            getModel = { runtimeState.model },
-            onNewModel = { runtimeState.model = it })
+            runtimeState = runtimeState
+        )
     }
 
     Main.View(model = runtimeState.model, dispatch = runtimeState.dispatch)
 }
 
-suspend fun collectEvents(
-    runtimeState: RuntimeState,
-    getModel: () -> Main.Model,
-    onNewModel: (Main.Model) -> Unit
-) {
+suspend fun collectEvents(runtimeState: RuntimeState) {
     runtimeState.eventFlow.filterNotNull().collect { event ->
         handleEvent(
             runtimeState = runtimeState,
-            model = getModel(),
-            onNewModel = onNewModel,
             event = event
         )
     }
@@ -97,8 +90,7 @@ fun setUpLifecycle(
             // it won't be collected from the Flow
             handleEvent(
                 runtimeState,
-                runtimeState.model,
-                onNewModel = {}, // Ignore new models after destroy
+                // Ignore new models after destroy
                 onDestroy
             )
             super.onDestroy(owner)
@@ -152,14 +144,15 @@ fun rememberRuntimeState(): RuntimeState {
 
 private fun handleEvent(
     runtimeState: RuntimeState,
-    model: Main.Model,
-    onNewModel: (Main.Model) -> Unit,
     event: Main.Event
 ) {
     try {
-        val change = Main.update(model, event)
+        val change = Main.update(runtimeState.model, event)
         change.effects.forEach { effect ->
-            execute(effect, runtimeState, onNewModel)
+            execute(
+                effect = effect,
+                platform = runtimeState,
+                onNewModel = { runtimeState.model = it })
         }
     } catch (t: Throwable) {
         Toast.makeText(
