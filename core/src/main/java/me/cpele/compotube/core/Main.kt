@@ -137,12 +137,16 @@ object Main {
     }
 
     fun update(model: Model, event: Event): Change<Model> = when (event) {
+
         is Event.LifecycleCreated ->
             Change(Effect.LoadPref(Main.javaClass.name, null))
+
         is Event.StrPrefLoaded ->
             Change(deserialize(event.value))
+
         is Event.LoginRequested ->
             Change(Effect.ChooseAccount)
+
         is Event.ActivityResultReceived -> {
             val accountName =
                 event.result.data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
@@ -153,13 +157,16 @@ object Main {
                 Effect.SelectAccount(accountName)
             )
         }
+
         is Event.QueryChanged ->
             Change(
                 model.copy(query = event.value),
                 Effect.Log(tag = javaClass.simpleName, text = "You're looking for ${event.value}")
             )
+
         is Event.QuerySent ->
             Change(Effect.CheckPermission(Manifest.permission.GET_ACCOUNTS))
+
         is Event.PermissionChecked ->
             when (event.checkResult) {
                 PackageManager.PERMISSION_GRANTED -> Change(
@@ -171,6 +178,7 @@ object Main {
                 else ->
                     throw IllegalStateException("Unknown permission check result: ${event.checkResult}")
             }
+
         is Event.ResponseReceived -> {
             val result = event.response
             val items = result?.items ?: emptyList()
@@ -179,6 +187,7 @@ object Main {
                 Effect.Log(tag = javaClass.simpleName, text = "Received result: $result")
             )
         }
+
         is Event.LifecycleDestroyed ->
             Change(Effect.SavePref(javaClass.name, serialize(model)))
     }
