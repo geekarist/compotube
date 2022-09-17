@@ -40,7 +40,6 @@ object Main {
         val isLoggedIn: Boolean = accountName != null
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun View(model: Model, dispatch: (Event) -> Unit) {
         if (model.isLoggedIn) {

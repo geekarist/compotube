@@ -207,13 +207,18 @@ private fun execute(
         is Effect.Search -> platform.coroutineScope.launch {
             search(
                 platform.youTube,
-                effect.query, platform.dispatch
+                effect.query,
+                platform.dispatch
             )
         }
-        is Effect.RequestPermission -> TODO("Implement request permission on $effect")
+        is Effect.RequestPermission -> requestPermission()
     }
 } catch (t: Throwable) {
     Log.w("", "Error executing effect: $effect", t)
+}
+
+fun requestPermission() {
+    TODO()
 }
 
 fun checkPermission(context: Context, permission: String, dispatch: (Main.Event) -> Unit) {
