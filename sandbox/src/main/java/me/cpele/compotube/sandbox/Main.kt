@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,9 +52,22 @@ object Main {
                     }
             }
         )
+        val requestPermLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission(),
+            onResult = { activityResult ->
+                Log.d(TAG, "Received permission response: $activityResult")
+            }
+        )
 
         Column(Modifier.padding(16.dp)) {
-            Button(onClick = { search(googleCredential, context, chooseAccountLauncher) }) {
+            Button(onClick = {
+                search(
+                    googleCredential,
+                    context,
+                    chooseAccountLauncher,
+                    requestPermLauncher
+                )
+            }) {
                 Text(text = "Search")
             }
         }
@@ -62,7 +76,8 @@ object Main {
     private fun search(
         googleCredential: GoogleAccountCredential,
         context: Context,
-        chooseAccountLauncher: ActivityResultLauncher<Intent>
+        chooseAccountLauncher: ActivityResultLauncher<Intent>,
+        requestPermLauncher: ManagedActivityResultLauncher<String, Boolean>
     ) = try {
         val query = "hello"
         Log.d(TAG, "Searching for $query")
@@ -94,7 +109,7 @@ object Main {
                     ).show()
                     chooseAccountLauncher.launch(googleCredential.newChooseAccountIntent())
                 } else {
-                    TODO("Request the GET_ACCOUNTS permission")
+                    requestPermLauncher.launch(Manifest.permission.GET_ACCOUNTS)
                 }
             }
             !isDeviceOnline() -> {
