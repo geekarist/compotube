@@ -33,6 +33,7 @@ import com.google.api.services.youtube.YouTubeScopes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object Main {
     private val TAG = this::class.simpleName
@@ -147,11 +148,13 @@ object Main {
                         )
                     } catch (t: Throwable) {
                         Log.w(TAG, "Error searching for \"$query\"", t)
-                        Toast.makeText(
-                            context,
-                            "Error searching for \"$query\": ${t.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                context,
+                                "Error searching for \"$query\": ${t.message}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 }
             }
