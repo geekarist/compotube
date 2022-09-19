@@ -99,11 +99,13 @@ object Main {
 
         when {
             !isGooglePlayServicesAvailable(context.applicationContext) -> {
-                Toast.makeText(
+                realize(
                     context,
-                    "Error: Google Play Services must be installed to use this application. Please install it and try again.",
-                    Toast.LENGTH_SHORT
-                ).show()
+                    Effect.Toast(
+                        "Error: Google Play Services must be installed to use this application. Please install it and try again.",
+                        Toast.LENGTH_SHORT
+                    )
+                )
                 TODO("Let the user install the application then continue")
             }
             googleCredential.selectedAccountName == null -> {
@@ -162,6 +164,20 @@ object Main {
             Log.w(TAG, msg, t)
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun realize(context: Context, toast: Effect.Toast) {
+        Toast.makeText(
+            context,
+            "Error: Google Play Services must be installed to use this application. Please install it and try again.",
+            Toast.LENGTH_SHORT
+        ).show()
+
+    }
+
+    interface Effect {
+        data class Toast(val msg: String, val length: Int)
+
     }
 
     private fun isDeviceOnline(context: Context) =
