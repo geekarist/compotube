@@ -147,21 +147,21 @@ object Main {
                             "Found ${results.size} results!"
                         )
                     } catch (t: Throwable) {
-                        Log.w(TAG, "Error searching for \"$query\"", t)
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(
-                                context,
-                                "Error searching for \"$query\": ${t.message}",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                        "Error searching for \"$query\"".let { msg ->
+                            Log.w(TAG, msg, t)
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            }
                         }
                     }
                 }
             }
         }
     } catch (t: Throwable) {
-        Log.w(TAG, "Error searching", t)
-        Toast.makeText(context, "Error searching: ${t.message}", Toast.LENGTH_SHORT).show()
+        "Error searching: ${t.message}".let { msg ->
+            Log.w(TAG, msg, t)
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun isDeviceOnline(context: Context) =
