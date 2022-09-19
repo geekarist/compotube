@@ -5,6 +5,7 @@ import android.accounts.AccountManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -20,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.getSystemService
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
@@ -112,7 +114,7 @@ object Main {
                     requestPermLauncher.launch(Manifest.permission.GET_ACCOUNTS)
                 }
             }
-            !isDeviceOnline() -> {
+            !isDeviceOnline(context) -> {
                 Toast.makeText(
                     context,
                     "Your device is offline. Please connect to the internet then retry.",
@@ -142,9 +144,9 @@ object Main {
         Toast.makeText(context, "Error searching: ${t.message}", Toast.LENGTH_SHORT).show()
     }
 
-    private fun isDeviceOnline(): Boolean {
-        TODO("Not yet implemented")
-    }
+    private fun isDeviceOnline(context: Context) =
+        context.getSystemService<ConnectivityManager>()
+            ?.activeNetworkInfo?.isConnected == true
 
     private fun isGooglePlayServicesAvailable(context: Context): Boolean =
         GoogleApiAvailability
