@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -29,13 +30,16 @@ import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.youtube.YouTube
 import com.google.api.services.youtube.YouTubeScopes
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 object Main {
     private val TAG = this::class.simpleName
 
     @Composable
     fun View() {
-
+        val coroutineScope = rememberCoroutineScope()
         val context = LocalContext.current
         val googleCredential = remember {
             GoogleAccountCredential.usingOAuth2(
@@ -64,6 +68,7 @@ object Main {
         Column(Modifier.padding(16.dp)) {
             Button(onClick = {
                 search(
+                    coroutineScope,
                     googleCredential,
                     context,
                     chooseAccountLauncher,
@@ -76,6 +81,7 @@ object Main {
     }
 
     private fun search(
+        coroutineScope: CoroutineScope,
         googleCredential: GoogleAccountCredential,
         context: Context,
         chooseAccountLauncher: ActivityResultLauncher<Intent>,
@@ -127,16 +133,27 @@ object Main {
                     TAG,
                     "Requirements are satisfied ⇒ executing search"
                 )
-                val response = youTube
-                    .search()
-                    .list("snippet")
-                    .setQ(query)
-                    .execute()
-                val results = response.items
-                Log.d(
-                    TAG,
-                    "Found ${results.size} results!"
-                )
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        val response = youTube
+                            .search()
+                            .list("snippet")
+                            .setQ(query)
+                            .execute()
+                        val results = response.items
+                        Log.d(
+                            TAG,
+                            "Found ${results.size} results!"
+                        )
+                    } catch (t: Throwable) {
+                        Log.w(TAG, "Error searching for \"$query\"", t)
+                        Toast.makeText(
+                            context,
+                            "Error searching for \"$query\": ${t.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
             }
         }
     } catch (t: Throwable) {
