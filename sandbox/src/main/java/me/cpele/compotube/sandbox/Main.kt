@@ -146,8 +146,25 @@ object Main {
                             TAG,
                             "Found ${results.size} results!"
                         )
+                        results.forEach { result ->
+                            val title = result.snippet.title
+                            Log.d(TAG, "- $title")
+                            val channel = result.snippet.channelTitle
+                            Log.d(TAG, "- $channel".prependIndent("\t"))
+                            val description = result.snippet.description
+                            Log.d(TAG, "- $description".prependIndent("\t"))
+                            val publishedAt = result.snippet.publishedAt
+                            Log.d(TAG, "- $publishedAt".prependIndent("\t"))
+                            val thumbnails = result.snippet.thumbnails
+                            Log.d(TAG, "- Thumbnails".prependIndent("\t"))
+                            thumbnails.forEach { thumb ->
+                                val key = thumb.key
+                                val value = thumb.value
+                                Log.d(TAG, "- $key: $value".prependIndent("\t\t"))
+                            }
+                        }
                     } catch (t: Throwable) {
-                        "Error searching for \"$query\"".let { msg ->
+                        "Error searching".let { msg ->
                             Log.w(TAG, msg, t)
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
